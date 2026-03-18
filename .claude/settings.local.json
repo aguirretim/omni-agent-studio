@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd:*)",
+      "Bash(echo \"TMUX=$TMUX\")",
+      "Bash(echo \"TMUX_PANE=$TMUX_PANE\")",
+      "Bash(npx next:*)",
+      "Bash(node -e \"const fm = require\\(''framer-motion''\\); console.log\\(typeof fm\\)\")",
+      "Bash(node -p \"require\\(''./node_modules/framer-motion/package.json''\\).version\")",
+      "Bash(node -p \"require\\(''./node_modules/react/package.json''\\).version\")",
+      "Bash(npx -y node -p \"require\\(''./node_modules/framer-motion/package.json''\\).version\")",
+      "Bash(npx -y node -p \"require\\(''./node_modules/react/package.json''\\).version\")",
+      "Bash(NODE_OPTIONS=\"--stack-trace-limit=50\" npx next build)",
+      "Bash(npx -y node -e \":*)",
+      "Bash(npx -y node -e \"const fs=require\\(''fs''\\); const f=fs.readdirSync\\(''.next/server/chunks/ssr/''\\).filter\\(x=>x.includes\\(''next_dist''\\)\\); console.log\\(f.slice\\(0,10\\)\\)\")",
+      "Bash(npx -y node -e \"const fs=require\\(''fs''\\); const f=fs.readdirSync\\(''.next/server/chunks/ssr/''\\).filter\\(x=>x.includes\\(''eb5f538a''\\)\\); console.log\\(f\\)\")",
+      "Bash(npx -y node -e \"const fs=require\\(''fs''\\);const c=fs.readFileSync\\(''.next/server/chunks/ssr/dc9c0_next_dist_eb5f538a._.js'',''utf8''\\);console.log\\(''len'',c.length,''uc_idx'',c.indexOf\\(''useContext''\\)\\)\")",
+      "Bash(npx -y node -e \"const fs=require\\(''fs''\\);const c=fs.readFileSync\\(''.next/server/chunks/ssr/dc9c0_next_dist_eb5f538a._.js'',''utf8''\\);process.stdout.write\\(c.substring\\(18770,19070\\)\\)\")",
+      "Bash(npx -y node -e \"const c=require\\(''fs''\\).readFileSync\\(''.next/server/chunks/ssr/dc9c0_next_dist_eb5f538a._.js'',''utf8''\\);const i=c.indexOf\\(''useUntrackedPathname''\\);process.stdout.write\\(c.substring\\(Math.max\\(0,i-500\\), i+200\\)\\)\")",
+      "Bash(TURBOPACK=0 npx next build --webpack)",
+      "Bash(unset TURBOPACK)",
+      "Bash(npx -y node -e \"let d='''''''';process.stdin.on\\(''''data'''',c=>d+=c\\);process.stdin.on\\(''''end'''',\\(\\)=>{const v=JSON.parse\\(d\\).filter\\(x=>x.startsWith\\(''''16.''''\\)\\);console.log\\(v.slice\\(-5\\)\\)}\\)\")",
+      "Bash(npx -y node -e \"let d='''''''';process.stdin.on\\(''''data'''',c=>d+=c\\);process.stdin.on\\(''''end'''',\\(\\)=>{const v=JSON.parse\\(d\\).filter\\(x=>x.startsWith\\(''''16.''''\\) && !x.includes\\(''''canary''''\\) && !x.includes\\(''''rc''''\\)\\);console.log\\(v\\)}\\)\")",
+      "Bash(npm view:*)",
+      "Bash(npm install:*)",
+      "Bash(env -u TURBOPACK npx next build --webpack)",
+      "WebSearch",
+      "Bash(echo:*)",
+      "Bash(npm run:*)"
+    ]
+  }
+}
