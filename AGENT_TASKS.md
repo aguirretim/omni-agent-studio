@@ -1,4 +1,19 @@
-# Agent Team Tasks
+# Agent Team Tasks — Fix Tool Probes (Windows Git Bash)
+Status: COMPLETE
+
+## Root Cause
+npm CLI wrappers (.sh files) in Git Bash try to invoke Node via a Windows path (C:\...\node.cmd)
+which Git Bash cannot execute. Fix: prefix all gemini/codex/opencode calls with `powershell -Command "..."`.
+Also: auth detection wrong for Gemini (uses OAuth, not API key) and Codex (uses auth.json, not API key).
+
+## Task List
+- [x] [lead] Fix SKILL_SMART_DELEGATE probe blocks (1b/1c/1d) + execution blocks → route.ts
+- [x] [lead] Fix SKILL_HYBRID Gemini/OpenCode/Codex invocation blocks → route.ts
+- [x] [lead] Fix SKILL_FACT_CHECK probe blocks + Gemini/Codex research blocks → route.ts
+- [x] [lead] Sync installed .md skill files (build-smart-delegate, build-hybrid-team, fact-check)
+
+---
+# Previous Session Tasks
 Status: COMPLETE
 
 ## Mission

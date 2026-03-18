@@ -2,8 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import {
-  Users, Zap, Terminal, Play, Loader2, CheckCircle2, AlertCircle,
-  Activity, ChevronUp, ChevronDown, FileCode2, Monitor, Info,
+  Users, Zap, Play, Loader2, CheckCircle2, AlertCircle,
+  ChevronUp, ChevronDown, FileCode2, Monitor, Info,
   RefreshCw, Download,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -35,20 +35,16 @@ function StatusBadge({ ok, label }: { ok: boolean; label: string }) {
 export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsProps) {
   // Feature setup
   const [isEnabled, setIsEnabled] = useState(false);
-  const [skillInstalled, setSkillInstalled] = useState(false);
+  const [skillsInstalled, setSkillsInstalled] = useState<Record<string, 'missing' | 'current' | 'outdated'>>({});
   const [isEnabling, setIsEnabling] = useState(false);
-  const [isInstallingSkill, setIsInstallingSkill] = useState(false);
+  const [installingSkill, setInstallingSkill] = useState<string | null>(null);
 
   // Panel state
   const [isExpanded, setIsExpanded] = useState(true);
   const [activeTab, setActiveTab] = useState<'launch' | 'setup' | 'guide'>('launch');
 
   // Launch config
-  const [plan, setPlan] = useState('');
   const [agentCount, setAgentCount] = useState<number | 'auto'>('auto');
-  const [launchMode, setLaunchMode] = useState<'terminal' | 'headless'>('terminal');
-  const [isLaunching, setIsLaunching] = useState(false);
-  const [teamOutput, setTeamOutput] = useState('');
 
   // WSL / tmux
   const [wslStatus, setWslStatus] = useState<WslStatus | null>(null);
@@ -57,12 +53,7 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
   const [isInstallingTmux, setIsInstallingTmux] = useState(false);
   const [wslOutput, setWslOutput] = useState('');
 
-  const outputRef = useRef<HTMLDivElement>(null);
   const wslOutputRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (outputRef.current) outputRef.current.scrollTop = outputRef.current.scrollHeight;
-  }, [teamOutput]);
 
   useEffect(() => {
     if (wslOutputRef.current) wslOutputRef.current.scrollTop = wslOutputRef.current.scrollHeight;
@@ -72,6 +63,23 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
     setSyncStatus(msg);
     setTimeout(() => setSyncStatus(null), 3000);
   };
+
+  // Sync enabled/installed state from disk on mount and when projectPath changes
+  const checkStatus = useCallback(async () => {
+    try {
+      const res = await fetch('/api/agent-teams', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'check-status', projectPath }),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setIsEnabled(!!data.isEnabled);
+      if (data.skills) setSkillsInstalled(data.skills);
+    } catch {}
+  }, [projectPath]);
+
+  useEffect(() => { checkStatus(); }, [checkStatus]);
 
   const checkWsl = useCallback(async () => {
     setIsCheckingWsl(true);
@@ -104,26 +112,29 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
         body: JSON.stringify({ action: 'enable' }),
       });
       const data = await res.json();
-      if (res.ok) { setIsEnabled(true); flash('Agent teams enabled in ~/.claude/settings.json'); }
+      if (res.ok) { setIsEnabled(true); flash('Agent teams enabled in ~/.claude/settings.json'); checkStatus(); }
       else flash(`Error: ${data.error}`);
     } catch { flash('Failed to enable agent teams'); }
     finally { setIsEnabling(false); }
   };
 
-  const handleInstallSkill = async () => {
+  const handleInstallSkill = async (skillName: string) => {
     if (!projectPath) { flash('Set workspace first'); return; }
-    setIsInstallingSkill(true);
+    setInstallingSkill(skillName);
     try {
       const res = await fetch('/api/agent-teams', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'install-skill', projectPath }),
+        body: JSON.stringify({ action: 'install-skill', projectPath, skillName }),
       });
       const data = await res.json();
-      if (res.ok) { setSkillInstalled(true); flash('Skill installed → .claude/commands/build-with-agent-team.md'); }
-      else flash(`Error: ${data.error}`);
+      if (res.ok) {
+        setSkillsInstalled(prev => ({ ...prev, [skillName]: 'current' }));
+        flash(`Installed → .claude/commands/${data.filename}`);
+        checkStatus();
+      } else flash(`Error: ${data.error}`);
     } catch { flash('Failed to install skill'); }
-    finally { setIsInstallingSkill(false); }
+    finally { setInstallingSkill(null); }
   };
 
   const handleInstallWsl = async () => {
@@ -165,51 +176,24 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
   };
 
   const handleLaunch = async () => {
-    if (!projectPath || !plan.trim()) return;
+    if (!projectPath) return;
     const count = agentCount === 'auto' ? undefined : agentCount;
-
-    if (launchMode === 'terminal') {
-      flash('Launching agent team terminal...');
-      try {
-        const res = await fetch('/api/agent-teams', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'launch-terminal', projectPath, plan: plan.trim(), agentCount: count }),
-        });
-        const data = await res.json();
-        const modeMsg: Record<string, string> = {
-          'wt-tmux': 'Windows Terminal opened — split panes will appear as agents spawn',
-          'cmd-tmux': 'tmux terminal opened — split panes will appear as agents spawn',
-          'wt-cmd':  'Windows Terminal opened (no split panes — install tmux for that)',
-          'cmd':     'Terminal opened — install WSL + tmux for split-pane view',
-        };
-        flash(modeMsg[data.mode] ?? 'Agent team terminal launched');
-      } catch { flash('Failed to launch terminal'); }
-      return;
-    }
-
-    setIsLaunching(true);
-    setTeamOutput('');
-    flash('Running headless agent team...');
+    flash('Launching agent team terminal...');
     try {
       const res = await fetch('/api/agent-teams', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'launch-headless', projectPath, plan: plan.trim(), agentCount: count }),
+        body: JSON.stringify({ action: 'launch-terminal', projectPath, agentCount: count }),
       });
-      if (!res.ok || !res.body) { flash('Agent team failed'); return; }
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        setTeamOutput(p => p + decoder.decode(value, { stream: true }));
-      }
-      flash('Agent team completed');
-    } catch {
-      setTeamOutput(p => p + '\nNetwork error communicating with agent team');
-      flash('Agent team failed');
-    } finally { setIsLaunching(false); }
+      const data = await res.json();
+      const modeMsg: Record<string, string> = {
+        'wt-tmux': 'Windows Terminal opened — split panes will appear as agents spawn',
+        'cmd-tmux': 'tmux terminal opened — split panes will appear as agents spawn',
+        'wt-cmd':  'Windows Terminal opened (no split panes — install tmux for that)',
+        'cmd':     'Terminal opened — install WSL + tmux for split-pane view',
+      };
+      flash(modeMsg[data.mode] ?? 'Agent team terminal launched');
+    } catch { flash('Failed to launch terminal'); }
   };
 
   const allReady = wslStatus?.wslAvailable && wslStatus?.distroInstalled && wslStatus?.tmuxInstalled;
@@ -296,18 +280,40 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
                       {isEnabled ? 'Feature Enabled' : 'Enable Feature'}
                     </button>
 
-                    <button
-                      onClick={handleInstallSkill}
-                      disabled={isInstallingSkill || !projectPath || skillInstalled}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
-                        skillInstalled
-                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 cursor-default'
-                          : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border-zinc-700 hover:border-zinc-600'
-                      } disabled:opacity-60`}
-                    >
-                      {isInstallingSkill ? <Loader2 size={12} className="animate-spin" /> : skillInstalled ? <CheckCircle2 size={12} /> : <FileCode2 size={12} />}
-                      {skillInstalled ? 'Skill Installed' : 'Install /build Skill'}
-                    </button>
+                    {[
+                      { key: 'claude-only',    label: '/build',                  title: 'Claude-only agents' },
+                      { key: 'hybrid',         label: '/build-hybrid',           title: 'Claude + Gemini + OpenCode' },
+                      { key: 'smart-delegate', label: '/build-smart-delegate',   title: 'Auto-routes based on usage' },
+                      { key: 'fact-check',     label: '/fact-check',             title: 'Multi-model research & verification' },
+                      { key: 'checkpoint',     label: '/checkpoint',             title: 'Sync all context files at any checkpoint' },
+                    ].map(({ key, label, title }) => {
+                      const status = skillsInstalled[key] ?? 'missing';
+                      const isInstalling = installingSkill === key;
+                      const isCurrent = status === 'current';
+                      const isOutdated = status === 'outdated';
+                      return (
+                        <button
+                          key={key}
+                          onClick={() => handleInstallSkill(key)}
+                          disabled={isInstalling || !projectPath || isCurrent}
+                          title={isOutdated ? `${title} — update available` : title}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
+                            isCurrent
+                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 cursor-default'
+                              : isOutdated
+                                ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border-amber-500/30 hover:border-amber-500/50'
+                                : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border-zinc-700 hover:border-zinc-600'
+                          } disabled:opacity-60`}
+                        >
+                          {isInstalling
+                            ? <Loader2 size={12} className="animate-spin" />
+                            : isCurrent
+                              ? <CheckCircle2 size={12} />
+                              : <FileCode2 size={12} />}
+                          {isCurrent ? `${label} ✓` : isOutdated ? `${label} ↑` : `Install ${label}`}
+                        </button>
+                      );
+                    })}
 
                     {!isEnabled && (
                       <span className="flex items-center gap-1 text-[10px] text-zinc-600">
@@ -316,99 +322,36 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
                     )}
                   </div>
 
-                  {/* Plan textarea */}
+                  {/* Agent count */}
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wider">Task Plan</label>
-                    <textarea
-                      placeholder={`Describe what to build. Be specific about components:\n\n"Build a user auth system with:\n1) PostgreSQL schema for users + sessions\n2) JWT REST API (login, register, refresh)\n3) React login/register forms with validation"`}
-                      className="w-full bg-[#18181b] border border-[#27272a] rounded-lg p-3 text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-orange-500/40 focus:ring-1 focus:ring-orange-500/20 resize-none font-mono leading-relaxed"
-                      rows={5}
-                      value={plan}
-                      onChange={e => setPlan(e.target.value)}
-                      disabled={isLaunching}
-                    />
-                  </div>
-
-                  {/* Config row */}
-                  <div className="flex items-end gap-6 flex-wrap">
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wider">Agents</label>
-                      <div className="flex items-center gap-1">
-                        {(['auto', 2, 3, 4, 6] as const).map(n => (
-                          <button
-                            key={n}
-                            onClick={() => setAgentCount(n)}
-                            className={`px-2.5 py-1 rounded text-[11px] font-semibold transition-all border ${
-                              agentCount === n
-                                ? 'bg-orange-500/20 text-orange-400 border-orange-500/40'
-                                : 'bg-zinc-800 text-zinc-500 border-zinc-700 hover:border-zinc-600 hover:text-zinc-400'
-                            }`}
-                          >{n === 'auto' ? 'Auto' : n}</button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wider">Mode</label>
-                      <div className="flex items-center gap-1">
+                    <label className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wider">Agents</label>
+                    <div className="flex items-center gap-1">
+                      {(['auto', 2, 3, 4, 6] as const).map(n => (
                         <button
-                          onClick={() => setLaunchMode('terminal')}
-                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-semibold transition-all border ${
-                            launchMode === 'terminal'
+                          key={n}
+                          onClick={() => setAgentCount(n)}
+                          className={`px-2.5 py-1 rounded text-[11px] font-semibold transition-all border ${
+                            agentCount === n
                               ? 'bg-orange-500/20 text-orange-400 border-orange-500/40'
                               : 'bg-zinc-800 text-zinc-500 border-zinc-700 hover:border-zinc-600 hover:text-zinc-400'
                           }`}
-                        >
-                          <Terminal size={11} /> Terminal
-                        </button>
-                        <button
-                          onClick={() => setLaunchMode('headless')}
-                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-semibold transition-all border ${
-                            launchMode === 'headless'
-                              ? 'bg-orange-500/20 text-orange-400 border-orange-500/40'
-                              : 'bg-zinc-800 text-zinc-500 border-zinc-700 hover:border-zinc-600 hover:text-zinc-400'
-                          }`}
-                        >
-                          <Activity size={11} /> Headless
-                        </button>
-                      </div>
+                        >{n === 'auto' ? 'Auto' : n}</button>
+                      ))}
                     </div>
                   </div>
 
-                  {/* Mode hint */}
-                  <p className="text-[10px] text-zinc-600 leading-relaxed -mt-1">
-                    {launchMode === 'terminal'
-                      ? 'Opens one window with all agents visible as split panes (requires WSL + tmux). Your plan is auto-sent to Claude after 6 s — just watch the panes appear.'
-                      : 'Runs Claude headlessly and streams all agent output directly to this panel. Great for quick, non-interactive runs.'}
+                  <p className="text-[10px] text-zinc-600 leading-relaxed">
+                    Opens Claude Code in a terminal. Tell Claude your task there. It can spawn sub-agents in split panes and call Gemini, OpenCode, or Codex as specialist workers — all coordinated through AGENT_TASKS.md.
                   </p>
 
                   {/* Launch button */}
                   <button
                     onClick={handleLaunch}
-                    disabled={isLaunching || !projectPath || !plan.trim()}
+                    disabled={!projectPath}
                     className="w-full py-2.5 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/30 hover:border-orange-500/50 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-orange-500/10"
                   >
-                    {isLaunching
-                      ? <><Loader2 size={15} className="animate-spin" /> Starting Team...</>
-                      : <><Play size={15} /> Launch Agent Team ({agentCount === 'auto' ? 'Auto' : agentCount} agents)</>}
+                    <Play size={15} /> Launch Agent Team ({agentCount === 'auto' ? 'Auto' : agentCount} agents)
                   </button>
-
-                  {/* Headless output */}
-                  <AnimatePresence>
-                    {(teamOutput || (launchMode === 'headless' && isLaunching)) && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                      >
-                        <div ref={outputRef} className="bg-[#0c0c0e] border border-[#27272a] rounded-lg p-3 max-h-52 overflow-y-auto">
-                          <pre className="text-[11px] font-mono text-zinc-400 whitespace-pre-wrap leading-relaxed">
-                            {teamOutput || 'Initializing agent team...'}
-                          </pre>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
                 </div>
               )}
 
@@ -549,12 +492,12 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
                   {[
                     {
                       step: '1',
-                      title: 'Enable & Install Skill (once)',
+                      title: 'Enable & Install Skills (once per project)',
                       color: 'text-orange-400',
                       body: (
                         <>
                           On the <strong className="text-zinc-200">Launch</strong> tab, click <strong className="text-zinc-200">Enable Feature</strong> — this writes <code className="text-orange-300">experimental.agentTeams: true</code> to <code className="text-zinc-300">~/.claude/settings.json</code>.
-                          Then click <strong className="text-zinc-200">Install /build Skill</strong> to write the orchestration prompt into <code className="text-zinc-300">.claude/commands/build-with-agent-team.md</code> inside your project.
+                          Then install whichever skills you need: <strong className="text-zinc-200">/build</strong> (Claude-only), <strong className="text-zinc-200">/build-hybrid</strong>, <strong className="text-zinc-200">/build-smart-delegate</strong>, or <strong className="text-zinc-200">/fact-check</strong> for multi-model research. Each writes a prompt file into <code className="text-zinc-300">.claude/commands/</code>.
                         </>
                       ),
                     },
@@ -593,13 +536,31 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
                     },
                     {
                       step: '5',
-                      title: 'Terminal vs Headless mode',
+                      title: 'Hybrid teams — Claude leads, other tools assist',
                       color: 'text-amber-400',
                       body: (
                         <>
-                          <strong className="text-zinc-200">Terminal mode</strong> opens Claude Code interactively — type <code className="text-zinc-300">/build-with-agent-team [plan]</code> to start.
-                          With WSL + tmux installed, each agent appears in its own split pane.{' '}
-                          <strong className="text-zinc-200">Headless mode</strong> runs non-interactively and streams all output back here — best for simpler, bounded tasks.
+                          Claude is always the lead. But it can call <strong className="text-zinc-200">Gemini CLI</strong> as a bash subprocess for large-context codebase analysis (up to 1M tokens), and <strong className="text-zinc-200">OpenCode or Codex</strong> for generating isolated, fully-specified files. Claude reviews all specialist output before treating it as a contract — only Claude sub-agents can self-correct. The skill file teaches Claude exactly when and how to delegate to each tool.
+                        </>
+                      ),
+                    },
+                    {
+                      step: '6',
+                      title: '/fact-check — multi-model research & verification',
+                      color: 'text-sky-400',
+                      body: (
+                        <>
+                          Run <code className="text-sky-300">/fact-check [claim]</code> to have every available model research a claim <strong className="text-zinc-200">independently</strong> — preventing anchoring bias. Claude, Gemini, and Codex each write findings to temp files. Claude then cross-verifies them, flags contradictions, and saves a structured <code className="text-zinc-300">FACT_CHECK_[topic].md</code> report with confirmed findings, disputed claims, and what remains unresolved.
+                        </>
+                      ),
+                    },
+                    {
+                      step: '7',
+                      title: '/checkpoint — sync all context at any point',
+                      color: 'text-violet-400',
+                      body: (
+                        <>
+                          Run <code className="text-violet-300">/checkpoint</code> at any point — mid-session or end-of-session — to audit git changes, update the Session Log and Active Goals in <code className="text-zinc-300">.claude.md</code>, then mirror to <code className="text-zinc-300">.gemini.md</code> and <code className="text-zinc-300">agents.md</code>. Every AI tool that opens the folder next starts with a complete, accurate picture of where things stand.
                         </>
                       ),
                     },
