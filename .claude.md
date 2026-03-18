@@ -113,12 +113,12 @@ No reminder needed — this is automatic, like saving a file.
 - **OpenCode**: NOT configured — `~/.config/opencode/auth.json` is empty, no `config.toml`. Needs `OPENAI_API_KEY` or provider config.
 
 ## Active Goals
-- [ ] Clean up — delete unused `components/GhostAgent.tsx` and `app/api/ghost/route.ts` (no UI calls them)
-- [ ] Delete `.gemini-task-output.md` artifact (safe to remove between sessions; regenerated each run)
-- [ ] Delete `out.txt` — raw terminal artifact from OpenCode probe (ANSI escape codes, not useful)
-- [ ] Verify the app compiles and runs correctly after all session changes
-- [ ] Consider adding a "Reset to template" option in the context editor for when users want a fresh start
-- [ ] Commit all unstaged changes (6 modified files + 8 untracked files, including .claude.md, .gemini.md, agents.md, and all 5 skill files)
+- [x] Clean up — delete unused `components/GhostAgent.tsx` and `app/api/ghost/route.ts` (no UI calls them)
+- [x] Delete `.gemini-task-output.md` artifact (safe to remove between sessions; regenerated each run)
+- [x] Delete `out.txt` — raw terminal artifact from OpenCode probe (ANSI escape codes, not useful)
+- [x] Verify the app compiles and runs correctly after all session changes
+- [x] Consider adding a "Reset to template" option in the context editor for when users want a fresh start
+- [x] Commit all unstaged changes (6 modified files + 8 untracked files, including .claude.md, .gemini.md, agents.md, and all 5 skill files)
 
 ## Session Log
 - 2026-03-18 · Initial redesign — decomposed 617-line page.tsx into routed pages + components per DESIGN_SPEC.md
@@ -146,3 +146,5 @@ No reminder needed — this is automatic, like saving a file.
 - 2026-03-18 · /build-smart-delegate · Gemini-leads (FULL/READY/NO_KEY/READY, SMALL) · Context audit via Gemini: Project Structure updated to include .claude.md, .gemini.md, agents.md, AGENT_TASKS.md, .gemini-task-output.md, .claude/settings.local.json, and all 5 skill files; active goal added to delete .gemini-task-output.md artifact; commit count updated to 6 modified + 8 untracked
 - 2026-03-18 · /build-with-agent-team · Claude-only (FULL/READY/NO_KEY/READY, SMALL) · Fixed Gemini [LocalAgentExecutor] errors in build-smart-delegate.md, build-hybrid-team.md, and route.ts SKILL_HYBRID + SKILL_SMART_DELEGATE constants: added TOOL RESTRICTIONS header to all Gemini -p prompts blocking run_shell_command/generalist/codebase_investigator; added pre-fetch pattern for shell data injection; removed "Read .gemini.md first" / "Analyze the project at the current directory" implicit shell triggers
 - 2026-03-18 · /checkpoint · Session close · 6 modified + 8 untracked files uncommitted; Gemini tool-restriction fix complete; out.txt artifact discovered; all skills functional; context synced
+- 2026-03-18 · All goals completed · Deleted GhostAgent/ghost route; added Reset to Template button (context/page.tsx); build verified clean; committed 16 files (11cb1e8)
+- 2026-03-18 · /build-with-agent-team · Claude-only (FULL, SMALL) · Added run.bat (double-click launcher: checks Node.js, installs deps, starts app, opens browser) and README.txt (plain-English setup guide covering Node.js, AI tool installs, troubleshooting)
