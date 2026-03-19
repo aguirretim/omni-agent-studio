@@ -11,25 +11,28 @@ one place, keeping them all in sync with your project.
 
 HOW TO RUN IT
 -------------
-1. Make sure Node.js is installed (see "Requirements" below)
-2. Double-click  run.bat
-3. Wait for the app to open in your browser
+1. Double-click  run.bat
+2. If Node.js is not on your computer, it will install
+   automatically — you may see a security prompt, click Yes
+3. Wait for the app to open in your browser (takes ~1 min
+   the first time while it installs app files)
 4. That's it — the app runs at http://localhost:3000
 
 To stop the app, close the black command window that opened.
-To start it again, double-click run.bat again.
+To start it again, double-click run.bat again (fast after
+the first time).
 
 
 REQUIREMENTS
 ------------
-Node.js (free) must be installed on your computer.
+Nothing to install manually — run.bat handles everything.
+
+If the automatic install fails (no internet, security
+software blocking it), you can install Node.js manually:
 
   Download: https://nodejs.org/en/download
   Choose the version labelled "LTS"
-  Run the installer and accept all defaults
-
-If Node.js is not installed, run.bat will open the download
-page automatically.
+  Run the installer, accept all defaults, then run run.bat again.
 
 
 AI TOOLS — OPTIONAL BUT RECOMMENDED
