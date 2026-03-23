@@ -16,6 +16,12 @@ export async function POST(req: NextRequest) {
     // Ensure the path is absolute
     currentPath = path.resolve(currentPath);
 
+    // Path boundary check (S-H2/S-H4)
+    const homeDir = os.homedir();
+    if (!currentPath.startsWith(homeDir + path.sep) && currentPath !== homeDir) {
+      return NextResponse.json({ error: 'Forbidden: path outside home directory' }, { status: 403 });
+    }
+
     // Check if the directory exists
     if (!fs.existsSync(currentPath)) {
       return NextResponse.json({ error: 'Directory does not exist' }, { status: 404 });

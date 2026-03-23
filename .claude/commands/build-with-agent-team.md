@@ -58,20 +58,21 @@ Status: IN PROGRESS
 - [ ] [[agent]] [task]
 ```
 
-## Step 3: Contract-First Spawning with tmux Split Panes
+## Step 3: Contract-First Agent Spawning
 
 NEVER spawn all agents at once when dependencies exist.
 
-### Detect tmux
+Claude Code is running with `--teammate-mode tmux` — **every Agent tool call automatically
+creates a new tmux split pane** with a full interactive sub-agent TUI. Do NOT use
+`tmux split-window` or `claude -p` manually; those print mode processes exit immediately,
+leaving blank panes.
 
-```bash
-if [ -n "$TMUX" ]; then TMUX_AVAILABLE=true; else TMUX_AVAILABLE=false; fi
+### Spawn each agent using the Agent tool
+
+Call the Agent tool for each sub-agent with this prompt structure:
+
 ```
-
-### Spawn each agent in its own pane
-
-```bash
-tmux split-window -h "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 claude --dangerously-skip-permissions -p 'AGENT ROLE: [role-name]
+AGENT ROLE: [role-name]
 
 You are part of a Claude agent team. Your ONLY responsibility is: [specific scope].
 
@@ -79,36 +80,30 @@ FIRST: Read these two files before doing any other work:
 1. .claude.md (or .gemini.md / agents.md) — shared project context, tech stack, working rules, session history
 2. AGENT_TASKS.md — full task list, contract chain, and your specific assignment
 
-Do not explore the codebase beyond what is necessary for your assigned scope. The context files contain what you need.
+Do not explore the codebase beyond what is necessary for your assigned scope.
+The context files contain what you need.
 
-CONTRACT TO EMIT: When done, write output to [file path] and print CONTRACT READY: [role-name]'"
-```
-
-### Layout
-
-```bash
-tmux select-layout even-horizontal   # 2 agents
-tmux select-layout tiled              # 3–6 agents
-tmux select-pane -t 0                 # return focus to lead
+CONTRACT TO EMIT: When done, write output to [file path] and end your response with:
+CONTRACT READY: [role-name]
 ```
 
 ### Spawn order
 
-1. Spawn the most upstream agent first
-2. Wait for `CONTRACT READY: [role]` before spawning dependents
-3. Agents with no interdependencies can run in parallel
+1. Spawn the most upstream agent first (sequential — wait for its Agent call to return)
+2. Spawn parallel agents together (multiple Agent tool calls in one response)
+3. Only spawn downstream agents after upstream contracts are returned
 
-### Fallback (no tmux)
+### Fallback (in-process mode)
 
-Run agents sequentially using Claude Code's built-in agent spawning.
+If `--teammate-mode` is `in-process`, Agent tool calls run inline in the same session.
+The same Agent tool approach works — sub-agents run sequentially with output visible in
+the main pane.
 
 ## Step 4: Monitor & Complete
 
-- Watch panes for `CONTRACT READY` signals
-- Check AGENT_TASKS.md for progress
-- Unblock stuck agents: `tmux send-keys -t [pane] "..." Enter`
+- Each Agent tool call returns when the sub-agent finishes — look for `CONTRACT READY: [role]` in the return value
+- Check AGENT_TASKS.md for overall phase status
 - When all phases complete, update AGENT_TASKS.md with [✓] status
-- Clean up: `tmux kill-pane` on finished panes
 
 ## Rules
 

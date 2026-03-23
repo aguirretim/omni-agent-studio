@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 
 // Files to sync
 const CONTEXT_FILES = ['.gemini.md', '.claude.md', 'agents.md'];
@@ -10,13 +11,31 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { action, projectPath, content } = body;
 
+    // CSRF check (S-H3)
+    const origin = req.headers.get('origin');
+    if (origin && origin !== 'http://localhost:3000') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     if (!projectPath) {
       return NextResponse.json({ error: 'projectPath is required' }, { status: 400 });
     }
 
+    // Path boundary check (S-H2)
+    const resolvedPath = path.resolve(projectPath);
+    const homeDir = os.homedir();
+    if (!resolvedPath.startsWith(homeDir + path.sep) && resolvedPath !== homeDir) {
+      return NextResponse.json({ error: 'Forbidden: path outside home directory' }, { status: 403 });
+    }
+
     // Ensure directory exists (basic validation)
-    if (!fs.existsSync(projectPath)) {
+    if (!fs.existsSync(resolvedPath)) {
       return NextResponse.json({ error: 'Project path does not exist' }, { status: 400 });
+    }
+
+    // 1MB size limit on sync content (S-M4)
+    if (action === 'sync' && content && content.length > 1_000_000) {
+      return NextResponse.json({ error: 'Content too large' }, { status: 413 });
     }
 
     if (action === 'read') {
@@ -25,7 +44,7 @@ export async function POST(req: NextRequest) {
       let foundFile = false;
 
       for (const file of CONTEXT_FILES) {
-        const filePath = path.join(projectPath, file);
+        const filePath = path.join(resolvedPath, file);
         if (fs.existsSync(filePath)) {
           currentContent = fs.readFileSync(filePath, 'utf-8');
           foundFile = true;
@@ -49,7 +68,7 @@ export async function POST(req: NextRequest) {
       // Write the identical content to all three context files
       const writeResults = [];
       for (const file of CONTEXT_FILES) {
-        const filePath = path.join(projectPath, file);
+        const filePath = path.join(resolvedPath, file);
         try {
           fs.writeFileSync(filePath, content, 'utf-8');
           writeResults.push({ file, status: 'success' });

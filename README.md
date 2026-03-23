@@ -1,36 +1,76 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# OmniAgent Studio
 
-## Getting Started
+A dashboard that lets you run multiple AI coding assistants (Claude, Gemini, OpenCode, Codex) from one place, keeping them all in sync with your project.
 
-First, run the development server:
+## How to Run
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+1. Double-click `run.bat`
+2. If Node.js is not on your computer, it will install automatically — you may see a security prompt, click Yes
+3. Wait for the app to open in your browser (takes ~1 min the first time while it installs app files)
+4. That's it — the app runs at http://localhost:3000
+
+To stop the app, close the black command window that opened.
+To start it again, double-click `run.bat` again (fast after the first time).
+
+## Requirements
+
+Nothing to install manually — `run.bat` handles everything.
+
+If the automatic install fails (no internet, security software blocking it), install Node.js manually:
+- Download: https://nodejs.org/en/download
+- Choose the version labelled "LTS"
+- Run the installer, accept all defaults, then run `run.bat` again.
+
+## AI Tools — Optional But Recommended
+
+OmniAgent Studio coordinates AI tools that must be installed separately. Install whichever ones you want to use:
+
+```
+Claude Code (Anthropic)
+  npm install -g @anthropic-ai/claude-code
+  Then: claude login
+
+Gemini CLI (Google — free with a Google account)
+  npm install -g @google/gemini-cli
+  Then: gemini (follow login prompt)
+
+Codex CLI (OpenAI — requires OpenAI account)
+  npm install -g @openai/codex
+
+OpenCode (requires OpenAI API key)
+  npm install -g opencode-ai
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open PowerShell (search "PowerShell" in the Windows start menu) and paste commands one at a time.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## First-Time Setup in the App
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Open the app (`run.bat`)
+2. On the Home page, click "Browse" and select your project folder
+3. Go to "Shared Context" and fill in the template (describe your project — the AI tools will read this)
+4. Go to "Agent Teams" to install the AI coordination skills
+5. Go to "Tools" to launch AI assistants in your project
 
-## Learn More
+## Troubleshooting
 
-To learn more about Next.js, take a look at the following resources:
+**App won't start?**
+- Make sure Node.js is installed
+- Try closing and re-running `run.bat`
+- Check that nothing else is using port 3000
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+**npm install failed?**
+- Check your internet connection
+- Temporarily disable antivirus and try again
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+**AI tool not working?**
+- Make sure you installed and logged in to that tool
 
-## Deploy on Vercel
+**Browser doesn't open automatically?**
+- Manually open http://localhost:3000 in any browser
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Dev Setup
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm install
+npm run dev
+```

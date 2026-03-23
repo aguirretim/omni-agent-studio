@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { Bot, Home } from 'lucide-react';
 
-import { useWorkspace } from '@/components/WorkspaceProvider';
-import AgentTeams from '@/components/AgentTeams';
+import { useWorkspace } from '@/components/layout/WorkspaceProvider';
+import AgentTeams from '@/components/features/AgentTeams';
 
 export default function AgentsPage() {
   const { projectPath, setSyncStatus } = useWorkspace();

@@ -49,7 +49,7 @@ if (-not $nodeCmd) {
             Invoke-WebRequest -Uri $url -OutFile $msi -UseBasicParsing
 
             Write-Step "Installing Node.js $ver..."
-            Write-Info "(You may see a security prompt — click Yes to allow the install)"
+            Write-Info "(You may see a security prompt - click Yes to allow the install)"
             Start-Process msiexec -ArgumentList "/i `"$msi`" /quiet /norestart" -Wait
             $installed = $true
             Write-OK "Node.js $ver installed."
@@ -91,7 +91,7 @@ Write-Host ""
 # ── Step 2: Install npm dependencies if needed ───────────────
 
 if (-not (Test-Path "node_modules")) {
-    Write-Step "Installing app dependencies (first run — about 1 minute)..."
+    Write-Step "Installing app dependencies (first run - about 1 minute)..."
     npm install 2>&1 | Where-Object { $_ -notmatch "^npm warn" } | Out-Null
     if ($LASTEXITCODE -ne 0) {
         Write-Fail "Failed to install dependencies."

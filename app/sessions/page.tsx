@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 
-import { FolderGit2, Loader2, CheckCircle2, Home } from 'lucide-react';
+import { FolderGit2, Loader2, CheckCircle2, XCircle, Home } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useWorkspace } from '@/components/WorkspaceProvider';
+import { useWorkspace } from '@/components/layout/WorkspaceProvider';
 
 export default function SessionsPage() {
   const { projectPath, setSyncStatus } = useWorkspace();
@@ -75,7 +75,7 @@ export default function SessionsPage() {
           Save Session
         </div>
         <p className="text-[13px] text-zinc-500 leading-snug mb-4">
-          Commits all changes in your workspace via git.
+          Creates a git commit with an auto-generated message based on the current date and time.
         </p>
 
         <AnimatePresence mode="popLayout">
@@ -87,7 +87,11 @@ export default function SessionsPage() {
               transition={{ duration: 0.2 }}
               className="mb-4 p-3 bg-zinc-900 border border-zinc-800 rounded-lg text-xs font-mono text-zinc-400 flex items-start gap-2 break-words"
             >
-              <CheckCircle2 size={14} className="text-emerald-500 shrink-0 mt-0.5" />
+              {lastCommitMsg?.startsWith('Failed') || lastCommitMsg?.startsWith('Fatal') ? (
+                <XCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+              )}
               <span className="leading-relaxed">{lastCommitMsg}</span>
             </motion.div>
           )}

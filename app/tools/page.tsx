@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { Terminal, Home } from 'lucide-react';
 
-import { useWorkspace } from '@/components/WorkspaceProvider';
-import ToolCard from '@/components/ToolCard';
+import { useWorkspace } from '@/components/layout/WorkspaceProvider';
+import ToolCard from '@/components/ui/ToolCard';
 
 const tools = [
   {
@@ -88,8 +88,8 @@ export default function ToolsPage() {
 
         {/* Tool cards grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {tools.map((tool) => (
-            <ToolCard key={tool.id} {...tool} />
+          {tools.map(({ id, bgColor, ...toolProps }) => (
+            <ToolCard key={id} {...toolProps} />
           ))}
         </div>
       </div>

@@ -73,10 +73,17 @@ Status: IN PROGRESS
 
 ## Step 3: Spawn Workers in the Right Order
 
-### Claude sub-agents (tmux panes — interactive, full capability)
+### Claude sub-agents (Agent tool — creates tmux panes automatically)
 
-```bash
-tmux split-window -h "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 claude --dangerously-skip-permissions -p 'AGENT ROLE: [role-name]
+Claude Code is running with `--teammate-mode tmux` — **every Agent tool call automatically
+creates a new tmux split pane** with a full interactive sub-agent TUI. Do NOT use
+`tmux split-window` or `claude -p` manually; those print-mode processes exit immediately,
+leaving blank panes.
+
+Call the Agent tool for each Claude sub-agent with this prompt structure:
+
+```
+AGENT ROLE: [role-name]
 
 You are part of a hybrid agent team led by Claude. Your ONLY responsibility is: [specific scope].
 
@@ -84,9 +91,11 @@ FIRST: Read these two files before doing any other work:
 1. .claude.md (or .gemini.md / agents.md) — shared project context, tech stack, working rules, session history
 2. AGENT_TASKS.md — full task list, contract chain, and your specific assignment
 
-Do not explore the codebase beyond what is necessary for your assigned scope. The context files contain what you need.
+Do not explore the codebase beyond what is necessary for your assigned scope.
+The context files contain what you need.
 
-CONTRACT TO EMIT: When done, write your output to [file path] and print CONTRACT READY: [role-name]'"
+CONTRACT TO EMIT: When done, write your output to [file path] and end your response with:
+CONTRACT READY: [role-name]
 ```
 
 ### Gemini as large-context analyst (bash subprocess — blocking)
@@ -100,7 +109,7 @@ Run this BEFORE spawning implementation agents so their prompts can reference th
 - Do NOT ask Gemini to "analyze the directory" or "enumerate files" — it will try `run_shell_command` and fail
 - Gemini can read individual files via `read_file` and search via `grep_search`/`glob` — direct it to specific files
 
-**Claude must pre-fetch directory structure** before invoking Gemini. Run `find . -type f` or `git ls-files` first, then inject the file list as plain text into the Gemini prompt so it knows what to read.
+**Claude must pre-fetch directory structure** before invoking Gemini. Run `git ls-files` first, then inject the file list as plain text into the Gemini prompt so it knows what to read.
 
 ```bash
 # Step 1 (Claude does this): pre-fetch the file tree
@@ -112,7 +121,7 @@ powershell -Command "gemini -p 'TOOL RESTRICTIONS (STRICT): You have access to r
 
 You are a codebase analyst. The project file tree is:
 
-[INJECT \$FILE_TREE HERE]
+[INJECT $FILE_TREE HERE]
 
 Read the key files listed above (package.json, tsconfig, main entry points, API routes, components) and produce:
 1. Complete folder structure with file purposes
@@ -147,40 +156,25 @@ powershell -Command "codex --approval-mode full-auto -q 'Generate ONLY src/utils
 
 **Always review specialist tool output before treating it as a contract** — unlike Claude sub-agents, they cannot self-correct if their output doesn't match expectations.
 
-### Layout after spawning Claude panes
-
-```bash
-# 2 panes → side by side
-tmux select-layout even-horizontal
-
-# 3–6 panes → tiled grid
-tmux select-layout tiled
-
-# Return focus to lead (pane 0)
-tmux select-pane -t 0
-```
-
 ### Spawn order (contract-first)
 
 1. Run **Gemini analysis first** if the codebase is large or unfamiliar (blocking — wait for it)
-2. Spawn the most upstream Claude sub-agent next
-3. Wait for `CONTRACT READY: [role]` before spawning dependents
+2. Spawn the most upstream Claude sub-agent next (sequential Agent tool call — wait for it to return)
+3. Only spawn dependents after upstream Agent call returns with `CONTRACT READY: [role]`
 4. Use OpenCode/Codex only for leaf tasks with no downstream dependencies
 
-### Fallback (no tmux)
+### Fallback (in-process mode)
 
-Run Claude sub-agents sequentially using built-in Claude Code agent spawning.
-Gemini and specialist tools still work — they are bash calls, not tmux-dependent.
+If `--teammate-mode` is `in-process`, Agent tool calls run inline. The same approach works —
+Gemini and specialist tools are bash calls and are not affected by teammate mode.
 
 ## Step 4: Monitor & Integrate
 
-- Watch panes for `CONTRACT READY` signals
-- Check AGENT_TASKS.md for overall progress
-- Unblock stuck Claude agents: `tmux send-keys -t [pane] "..." Enter`
+- Each Agent tool call returns when the sub-agent finishes — look for `CONTRACT READY: [role]` in the return value
+- Check AGENT_TASKS.md for overall phase status
 - **Review all specialist tool outputs** (Gemini, OpenCode, Codex) before marking their contracts complete — they cannot flag their own errors
 - When all phases complete, summarize what each worker built
 - Update AGENT_TASKS.md with final [✓] status
-- Clean up: `tmux kill-pane` on finished Claude panes
 
 ## Rules
 

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { exec } from 'child_process';
+import { spawn } from 'child_process';
+import fs from 'fs';
+import path from 'path';
 import os from 'os';
 
 export async function POST(req: NextRequest) {
@@ -7,12 +9,25 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { command, projectPath } = body;
 
+    // CSRF check (S-H3)
+    const origin = req.headers.get('origin');
+    if (origin && origin !== 'http://localhost:3000') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     if (!projectPath || !command) {
       return NextResponse.json({ error: 'projectPath and command are required' }, { status: 400 });
     }
 
+    // Path boundary check (S-H2)
+    const resolvedPath = path.resolve(projectPath);
+    const homeDir = os.homedir();
+    if (!resolvedPath.startsWith(homeDir + path.sep) && resolvedPath !== homeDir) {
+      return NextResponse.json({ error: 'Forbidden: path outside home directory' }, { status: 403 });
+    }
+
     const isWindows = os.platform() === 'win32';
-    
+
     // Safety list of allowed commands
     const allowedCommands = ['claude', 'gemini', 'opencode', 'codex'];
     if (!allowedCommands.includes(command)) {
@@ -33,21 +48,27 @@ export async function POST(req: NextRequest) {
         opencode: 'opencode',
         codex: 'codex'
       };
-      
+
       const installCmd = installCommands[command];
       const bin = binaryName[command] || command;
 
-      // In Windows, we spawn a new CMD window that stays open (/K) running the requested tool
-      // "start" spawns a separate window independent of our Node.js process.
-      // We use 'where' to check if the tool is installed, and if not, we auto-install it first.
-      const winCmd = `start "OmniAgent - ${command}" cmd.exe /K "cd /d ${projectPath} && (where ${bin} >nul 2>nul || (echo ${command} is not installed. Auto-installing... && ${installCmd})) && ${bin}"`;
-      
-      exec(winCmd, (error) => {
-        if (error) {
-          console.error(`Error spawning terminal: ${error.message}`);
-        }
+      // Write a .bat intermediary so resolvedPath is never interpolated into
+      // a shell command string — it is written into the file as a quoted value (C2)
+      const batLines = [
+        '@echo off',
+        `cd /d "${resolvedPath}"`,
+        `where ${bin} >nul 2>nul || (echo ${command} is not installed. Auto-installing... && ${installCmd})`,
+        bin,
+      ];
+      const batPath = path.join(resolvedPath, '.omni-launch.bat');
+      fs.writeFileSync(batPath, batLines.join('\r\n'), { encoding: 'utf8' });
+
+      // Launch via spawn with no shell — batPath is never shell-interpolated
+      const child = spawn('cmd.exe', ['/c', 'start', `OmniAgent - ${command}`, 'cmd.exe', '/K', batPath], { shell: false });
+      child.on('error', (err) => {
+        console.error(`Error spawning terminal: ${err.message}`);
       });
-      
+
       return NextResponse.json({ success: true, message: `Spawned ${command} terminal.` });
     } else {
       // Mac/Linux implementation (gnome-terminal, xterm, Terminal.app) - limited support here for now.

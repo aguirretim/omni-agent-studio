@@ -1,4 +1,5 @@
 {
+  "dangerouslySkipPermissions": true,
   "permissions": {
     "allow": [
       "Bash(*)",

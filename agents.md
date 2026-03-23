@@ -20,17 +20,22 @@
 .gemini.md                — Gemini-flavored copy of .claude.md (identical content, kept in sync via cp)
 agents.md                 — Generic agent copy of .claude.md (identical content, kept in sync via cp)
 AGENT_TASKS.md            — Task tracker: records which tool handled each phase per /build-* run
-.gemini-task-output.md    — Artifact from Gemini-leads strategy runs (safe to delete between sessions)
-.claude/settings.local.json — Claude Code permissions (Bash(*) wildcard, tool allow-lists)
+.claude/settings.local.json — Claude Code permissions (dangerouslySkipPermissions: true + Bash(*) wildcard)
 .claude/commands/
   build-with-agent-team.md  — /build-with-agent-team skill
   build-hybrid-team.md      — /build-hybrid-team skill
   build-smart-delegate.md   — /build-smart-delegate skill
   fact-check.md             — /fact-check skill
   checkpoint.md             — /checkpoint skill
+  ux-heuristic-review.md    — /ux-heuristic-review skill (Nielsen 10 heuristics, 4-severity)
+  wcag-audit.md             — /wcag-audit skill (WCAG 2.1 AA criterion-level)
+  design-critique.md        — /design-critique skill (5-dimension: hierarchy/interaction/consistency/accessibility/brand)
+  peer-review.md            — /peer-review skill (6-dimension editorial review)
+  literature-review.md      — /literature-review skill (PRISMA-inspired, ≥10 sources)
+  research-synthesis.md     — /research-synthesis skill (user-provided sources, consensus/contradiction analysis)
 
 app/
-  layout.tsx              — Root layout, delegates to AppShell (server component)
+  layout.tsx              — Root layout, delegates to AppShell
   page.tsx                — Home: workspace selector + welcome state / quick action cards
   globals.css             — Design tokens + base styles (do not change)
   context/page.tsx        — Shared Context editor (auto-save debounce, auto-template on first load)
@@ -39,33 +44,39 @@ app/
   sessions/page.tsx       — Git session manager (save/commit workspace state)
   api/
     analyze/route.ts      — Tech stack + folder structure detection
-    agent-teams/route.ts  — Agent Teams: enable, install-skill (supports skillName: claude-only|hybrid|smart-delegate|fact-check|checkpoint), check-status, launch-terminal, WSL/tmux setup
+    agent-teams/route.ts  — Agent Teams: enable, install-skill, check-status, launch-terminal, WSL/tmux setup
     commit/route.ts       — Git add + commit for sessions page
     context/route.ts      — Read + sync shared context files
     fs/route.ts           — Directory browser for FolderBrowser modal
-    ghost/route.ts        — UNUSED (GhostAgent UI removed; route still exists)
     terminal/route.ts     — Spawn interactive terminal windows for AI tools
 
 components/
-  AppShell.tsx            — Sidebar nav + header + WorkspaceProvider wrapper (client)
-  WorkspaceProvider.tsx   — Global context: projectPath, recentPaths, syncStatus
-  WorkspaceSelector.tsx   — Workspace path input + folder browser + recents dropdown
-  StatusToast.tsx         — Animated status pill in header
-  ToolCard.tsx            — Individual AI tool launch card (Claude, Gemini, OpenCode, Codex)
-  GhostAgent.tsx          — UNUSED (removed from agents page; file still on disk)
-  FolderBrowser.tsx       — Full-screen directory browser modal
-  HowToUse.tsx            — How to use modal (accessible via ? in header)
-  AgentTeams.tsx          — Agent Teams panel: Launch / Split-Pane Setup / How It Works tabs; 3 skill install buttons (claude-only, hybrid, smart-delegate)
+  layout/
+    AppShell.tsx          — Sidebar nav + header + WorkspaceProvider wrapper
+    WorkspaceProvider.tsx — Global context: projectPath, recentPaths, syncStatus
+    WorkspaceSelector.tsx — Workspace path input + folder browser + recents dropdown
+    FolderBrowser.tsx     — Full-screen directory browser modal
+    HowToUse.tsx          — How to use modal (accessible via ? in header)
+  ui/
+    StatusToast.tsx       — Animated status pill in header
+    ToolCard.tsx          — Individual AI tool launch card (Claude, Gemini, OpenCode, Codex)
+  features/
+    AgentTeams.tsx        — Agent Teams panel: Launch / Split-Pane Setup / How It Works / Preview tabs
+    SplitPanePreview.tsx  — Animated 2x2 terminal mosaic (4 agent panes), used in Preview tab
 
 scripts/
-  setup.ts                — Pre-dev/build setup script (unchanged)
+  setup.ts                — Pre-dev/build setup script (checks + installs AI CLIs on first boot)
 
-.claude/commands/
-  build-with-agent-team.md  — /build skill: Claude-only agent team with Step 0 context load
-  build-hybrid-team.md      — /build-hybrid skill: Claude leads + Gemini analysis + OpenCode/Codex generation
-  build-smart-delegate.md   — /build-smart-delegate skill: probes all tools, auto-routes task to best strategy
-  fact-check.md             — /fact-check skill: multi-model independent research + cross-verification + report saved to FACT_CHECK_[slug].md
-  checkpoint.md             — /checkpoint skill: audits git changes, updates .claude.md session log + goals, syncs to .gemini.md and agents.md
+public/                   — Static assets (favicon only; default scaffold SVGs removed)
+
+Runtime artifacts (gitignored — generated per session, never committed):
+  .agent-team-launch.ps1  — Written by agent-teams route for PowerShell-tier launch
+  .agent-team-launch.sh   — Written by agent-teams route for tmux/WSL-tier launch
+  AGENT_TASKS.md          — Written by /build-* skills, tracks per-session agent work
+  .gemini-task-output.md  — Written by /build-smart-delegate when Gemini-leads strategy runs
+  .gemini-analysis.md     — Written by /build-hybrid-team when Gemini does codebase analysis
+  .factcheck-*.md         — Temp research files written by /fact-check (deleted after report)
+  FACT_CHECK_*.md         — Final fact-check reports written by /fact-check
 ```
 
 ## Your Role
@@ -119,6 +130,24 @@ No reminder needed — this is automatic, like saving a file.
 - [x] Verify the app compiles and runs correctly after all session changes
 - [x] Consider adding a "Reset to template" option in the context editor for when users want a fresh start
 - [x] Commit all unstaged changes (6 modified files + 8 untracked files, including .claude.md, .gemini.md, agents.md, and all 5 skill files)
+- [x] Fix shell injection class — replace exec(string) with spawn(cmd, args[], {shell:false}) in commit, terminal, agent-teams routes (C1–C4)
+- [x] Validate projectPath against os.homedir() boundary in all API routes (S-H2, S-H4)
+- [x] Enable strict: true in tsconfig.json (Q-H1) — 0 TypeScript errors
+- [x] Fix sessions/page.tsx error icon — failed commit now shows XCircle (H12)
+- [x] Fix AnimatePresence exit pattern in FolderBrowser + HowToUse (C6, C-NEW2)
+- [x] Add ARIA dialog semantics to FolderBrowser + HowToUse modals (C5, C-NEW1)
+- [x] Add focus trap + backdrop click-to-close to both modals (H7/H8, H-NEW3/H-NEW4)
+- [x] Add role="status"/aria-live to StatusToast (H11) and ARIA to AgentTeams tab widget (H10)
+- [x] Fix blank tmux split panes preview — loop no longer resets to blank frame
+- [x] Add CSRF Origin check on all mutating API routes (S-H3)
+- [x] Validate agentCount as positive integer 1-10 (S-H1)
+- [x] wslProject single-quote escaping in bash heredoc (S-M3)
+- [x] 1MB content size limit in context/route.ts sync action (S-M4)
+- [x] WorkspaceSelector key prop fix + aria-labels for icon-only buttons (Q-L3, L-NEW7)
+- [x] AgentTeams collapse button aria-expanded + aria-controls (H9)
+- [x] Remove stale Headless mode docs from HowToUse (H13) — confirmed removed
+- [x] Add 5 new skills (commit, review-pr, debug, test-gen, explain) + install-all action + merge install buttons into one
+- [x] Fix remaining medium/low items from Round 3 REVIEW_REPORT.md (Q-M2/M3, Q-L1/L2, etc.)
 
 ## Session Log
 - 2026-03-18 · Initial redesign — decomposed 617-line page.tsx into routed pages + components per DESIGN_SPEC.md
@@ -148,3 +177,36 @@ No reminder needed — this is automatic, like saving a file.
 - 2026-03-18 · /checkpoint · Session close · 6 modified + 8 untracked files uncommitted; Gemini tool-restriction fix complete; out.txt artifact discovered; all skills functional; context synced
 - 2026-03-18 · All goals completed · Deleted GhostAgent/ghost route; added Reset to Template button (context/page.tsx); build verified clean; committed 16 files (11cb1e8)
 - 2026-03-18 · /build-with-agent-team · Claude-only (FULL, SMALL) · Added run.bat (double-click launcher: checks Node.js, installs deps, starts app, opens browser) and README.txt (plain-English setup guide covering Node.js, AI tool installs, troubleshooting)
+- 2026-03-18 · /build-with-agent-team · Claude-only (FULL, SMALL) · Rewrote launcher: run.bat now calls run.ps1 which auto-installs Node.js (winget first, MSI fallback), refreshes PATH in-session, opens browser after delay; README.txt updated to remove "install Node first" requirement
+- 2026-03-21 · /build-with-agent-team · Folder structure cleanup + permissions config · Reorganized components/ into layout/, ui/, features/ subdirs; moved DESIGN_SPEC.md → docs/; deleted test scripts, unused public SVGs, run-omniagent.bat; consolidated README.txt into README.md; set dangerouslySkipPermissions: true in settings.local.json; build verified clean
+- 2026-03-21 · Fix: WSL no-distro state · Added install-distro action to agent-teams route (wsl --install -d Ubuntu via elevated UAC); replaced static Store message in AgentTeams.tsx with an "Install Ubuntu" button
+- 2026-03-21 · Final cleanup · Deleted jsconfig.json (redundant with tsconfig.json @/* alias); deleted tsconfig.tsbuildinfo (generated cache); added *.zip to .gitignore · Build verified clean · Project structure fully optimized
+- 2026-03-21 · WSL distro auto-detection · After "Install Ubuntu" click: polls check-wsl every 8s (up to 30 attempts); shows spinner instead of button while polling; stops when distroInstalled=true; setup tab now re-checks on every open; step 2 shows first-launch hint for Ubuntu account setup
+- 2026-03-21 · Fix launch-terminal window not opening · Root cause: nested double-quotes in cmd.exe /K arg broke shell parsing · Fix: Tier 3 (no tmux) now writes .agent-team-launch.bat and launches that instead of inline commands; added exec error callbacks for server-side logging
+- 2026-03-21 · Fix window opens then closes · Root cause: cmd.exe can't run claude (npm .ps1/.cmd) due to PATH inheritance gap from Node.js spawn · Fix: Tier 3 now writes .agent-team-launch.ps1 and launches via PowerShell -NoExit -ExecutionPolicy Bypass; PATH rebuilt from User+Machine env vars at session start; wt.exe uses -- separator for modern Windows Terminal · Also: check-wsl now detects needsRestart (WSL_OPTIONAL_COMPONENT_REQUIRED error); UI shows restart banner when reboot needed
+- 2026-03-21 · Fix launch-terminal not opening Claude CLI · Root cause: tmux path (Tier 1/2) ran `claude` inside WSL but the npm shim needs `node` which isn't installed in WSL; detection check used `&&` which cmd.exe split before bash saw it · Fix: added `wsl -e node --version` gate (hasClaudeInWsl); when false, falls to Tier 3 (PowerShell); also changed tmux script to use `claude.exe`, replaced em dashes with ASCII hyphens in exec/start commands · Also fixed run.ps1 em dash corruption (same encoding issue)
+- 2026-03-21 · /build-with-agent-team · All skills run dangerously · build-with-agent-team.md + build-hybrid-team.md fallback sections updated to specify mode: "bypassPermissions" for Agent tool spawning; tmux paths already had --dangerously-skip-permissions; settings.local.json already had dangerouslySkipPermissions: true globally
+- 2026-03-21 · /build-with-agent-team · Folder cleanup pass 3 · Deleted docs/ (stale DESIGN_SPEC.md); added 9 runtime artifact patterns to .gitignore (.agent-team-launch.ps1/sh, AGENT_TASKS.md, .gemini-task-output.md, .gemini-analysis.md, .factcheck-*.md, FACT_CHECK_*.md); updated Project Structure in .claude.md with Runtime artifacts section
+- 2026-03-21 · Launch tab dep check · check-wsl now returns claudeInWsl field (node inside WSL gate, mirrors launch-terminal logic); AgentTeams.tsx runs checkWsl on mount; Launch tab shows live mode badge: "Split-pane (tmux)" or "Single-window (PowerShell)" with link to Setup tab
+- 2026-03-21 · Split-pane view test · Bug fix: allReady badge now also requires claudeInWsl (was showing "SPLIT-PANE READY" header while launch tab showed single-window mode); added Setup Step 3 with node-in-WSL install command (curl nodesource) · Machine state: wsl+distro+tmux installed, claudeInWsl=false
+- 2026-03-21 · Fix launch-terminal tmux path · Root cause: tmux script called `claude.exe` but npm global is `claude` (shell shim, no .exe); also cmd.exe inline quoting broke on OneDrive paths with spaces · Fix: changed tmux script to `claude`, added .bat wrapper for reliable path handling, added error callbacks to all exec calls · Machine state: wsl+distro+tmux+node all installed, claudeInWsl=true, tmux path now active and verified working
+- 2026-03-21 · Split-pane always + right-click fix · Per official docs: added `teammateMode: "tmux"` to settings.json (Enable action) + `--teammate-mode tmux` CLI flag in tmux launch script; added `env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` to settings.json (docs-recommended approach); Tier 3 (PS) now passes `--teammate-mode in-process` · Right-click fix: conhost path now explicitly sets `tmux set-option -g mouse off` so right-click paste/context menu works; QuickEdit registry key already set in .bat wrapper
+- 2026-03-21 · /build-with-agent-team · Split-pane test · All checks passed: wslAvailable=true, distroInstalled=true, tmuxInstalled=true, claudeInWsl=true; tmux session creation + split-window + layout all verified working
+- 2026-03-21 · Fix tmux mouse scroll · Added `tmux set-option -g mouse on` to .agent-team-launch.sh script in route.ts — tmux terminal was not scrollable without it
+- 2026-03-21 · /build-with-agent-team · Split-pane preview · Added Preview tab to AgentTeams with SplitPanePreview component — 2x2 animated terminal mosaic, 4 agents (frontend/backend/testing/context), lines scroll in at 800ms, blinking cursor, staggered framer-motion entrance, "Launch Agent Team" button wired to real launch · Built by real tmux-spawned agent team (ui-builder + integrator panes)
+- 2026-03-21 · Fix right-click in bat launch window · Root cause: tmux mouse on intercepted right-click in legacy conhost.exe; fix: made mouse on conditional on hasWindowsTerminal; added reg QuickEdit=1 to .bat for legacy console path
+- 2026-03-21 · /build-hybrid-team · Full codebase code review · Gemini: architecture + security surface analysis; 3 Claude sub-agents (security, code-quality, ux) ran in parallel tmux panes · 7 Critical, 13 High, 15 Medium, 17 Low findings across security/quality/UX · Output: REVIEW_REPORT.md (prioritized fix roadmap in 4 tiers)
+- 2026-03-21 · /build-with-agent-team · Round 2 codebase review · 3 parallel tmux agents (security, quality, ux); 0 Round 1 findings resolved; 2 new High findings (UAC CSRF H3; focus trap/backdrop H7/H8); 3 Critical reclassified from UX (dialog ARIA C5, exit animation C6, mobile sidebar C7) · REVIEW_REPORT.md updated: 7C 11H 15M 17L
+- 2026-03-21 · Fix blank tmux panes + conhost rendering · Root cause: conhost.exe default codepage (437) can't render Claude's Unicode TUI; also missing UTF-8 locale in WSL bash · Fix: .bat now sets `chcp 65001`, `mode con cols=200 lines=50`, Consolas font via registry; .sh sets `LANG=C.UTF-8`; added stale session cleanup; per docs: `--teammate-mode tmux` flag + `teammateMode: "tmux"` in settings.json + `env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` in settings.json
+- 2026-03-21 · Switch default launch to PowerShell (in-process mode) · Conhost+tmux is fundamentally broken on Windows (blank panes, no right-click, no scroll); tmux path now ONLY used when Windows Terminal is installed (proper Unicode + mouse); default Tier 2 launches PowerShell with `claude --teammate-mode in-process` (teammates inline, Shift+Down to cycle); updated UI: mode badge, setup tab text, flash messages; settings.json `teammateMode` set to `auto`
+- 2026-03-21 · Installed Windows Terminal via winget · `wt.exe` now detected; launch hits Tier 1 (wt-tmux); Claude opens in Windows Terminal with tmux split panes, mouse on, full Unicode rendering; right-click + scroll work natively; UI mode badge now dynamic (detects WT+tmux vs PS fallback)
+- 2026-03-21 · /build-with-agent-team · Round 3 code review · 3 parallel tmux agents; 0 Round 2 findings resolved; +1C (FolderBrowser ARIA), +4H (FolderBrowser focus/backdrop, strict:false, agentCount injection), +2M (agent count ARIA, skill color-only), +2L (icon aria-labels) · REVIEW_REPORT.md updated: 8C 15H 17M 19L
+- 2026-03-21 · Fix blank split pane preview · Root cause: cycling loop reset visibleLines to [] for 800ms each cycle; fix: loop starts at index 1, never resets to blank — instant first-line show after delay
+- 2026-03-21 · /build-with-agent-team · Fix critical review findings · 3 parallel agents (api-security, modal-correctness, component-quality) · Security: C1-C4 shell injection → spawn(args[],{shell:false}); S-H1 agentCount int validation; S-H2/H4 path boundary os.homedir(); S-H3 CSRF Origin header; S-M3 wslProject quote-escape; S-M4 1MB content limit · Correctness: C6/C-NEW2 AnimatePresence exit; H12 wrong icon; H13 stale docs · ARIA: C5/C-NEW1 dialog semantics; H7/H8/H-NEW3/H-NEW4 focus trap+backdrop; H9 aria-expanded; H10 tab widget+arrow keys; H11 aria-live; Q-L3 key prop; L-NEW7 aria-labels · tsconfig strict:true — 0 TS errors
+- 2026-03-21 · Fix blank split panes (real agents) · Root cause: skill files used `tmux split-window "claude -p '...'"` — print mode exits immediately, pane closes/stays blank · Fix: replaced manual tmux split-window with Agent tool in both skill files + SKILL_* constants in route.ts; `--teammate-mode tmux` intercepts Agent calls and creates persistent interactive TUI panes automatically
+- 2026-03-22 · /build-with-agent-team · Skills research + UI merge · Added 5 new curated skills (commit, review-pr, debug, test-gen, explain) to route.ts; added install-all-skills API action; merged 5 separate install buttons into one "Install All Skills" button showing N/10 progress; 0 TS errors
+- 2026-03-22 · /build-with-agent-team · GitHub skill packs · Fetched real skill content from wshobson/commands (14 skills), iannuttall/claude-sessions (5 skills), alirezarezvani/claude-skills (4 skills); added SKILL_PACKS registry + list-packs + install-pack API actions; added Skill Library tab to AgentTeams with pack cards (name, stars, repo link, skill chips, Install Pack button); 0 TS errors
+- 2026-03-22 · /build-with-agent-team · Tier 4 polish + medium/low review fixes · Q-M2: handleLoadContext→useCallback, useEffect now tracks projectPath changes; Q-M3: removed duplicate setTimeout in flash(); M9: aria-label on context textarea; M10: aria-label+(opens in new tab) on ToolCard links; M11: aria-hidden on SplitPanePreview mosaic; M12: removed duplicate sentence in sessions/page; M14/Q-L8: 70vh inline style→Tailwind h-[70dvh] min-h-[300px]; M15: hardcoded heights→Tailwind in SplitPanePreview; M-NEW5: role=group+aria-labelledby on agent count selector; Q-L2: removed unused id/bgColor from ToolCard; Q-L4: catch(err)→catch in FolderBrowser; Q-L5: IIFE→InstallSkillsButton fn; Q-L6: fetchDirectory→useCallback+listed in deps; Q-L7: moduleResolution node→bundler; Q-L9: composite key in SplitPanePreview; L16: h-[80vh]→max-h-[80dvh] in HowToUse · 0 TS errors
+- 2026-03-22 · /build-with-agent-team · Skill integration into build skills · Updated build-with-agent-team.md, build-hybrid-team.md, build-smart-delegate.md with full Skill Toolkit tables (core 5 curated + 14 community pack skills); added /explain pre-read gate, /debug error gate, mandatory Phase 4 quality gate (/test-gen + /review-pr), Phase 5 /commit; agent prompt template now includes ERROR HANDLING block; note: route.ts SKILL_* constants not updated (api/ frozen) — re-installing skills via UI would overwrite with old versions
+- 2026-03-22 · /build-with-agent-team · Added 6 skills to website install · Registered SKILL_UX_HEURISTIC, SKILL_WCAG_AUDIT, SKILL_DESIGN_CRITIQUE, SKILL_PEER_REVIEW, SKILL_LITERATURE_REVIEW, SKILL_RESEARCH_SYNTHESIS in route.ts; updated all 3 skill maps (check-status, install-skill, install-all-skills); TOTAL_SKILLS 10→16 in AgentTeams.tsx; 0 TS errors
+- 2026-03-22 · /build-with-agent-team · UI/UX + research skills · Created 6 new skills: /ux-heuristic-review (Nielsen 10 heuristics, 4-severity), /wcag-audit (WCAG 2.1 AA criterion-level), /design-critique (5-dimension: hierarchy/interaction/consistency/accessibility/brand), /peer-review (6-dimension editorial review, major/minor findings), /literature-review (PRISMA-inspired, ≥10 sources, 3 database minimum), /research-synthesis (user-provided sources, consensus/contradiction/gap analysis) · Added UI/UX + research tables to all 3 build skill toolkit sections

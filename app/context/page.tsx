@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 
 import { FileText, Save, Loader2, Home, CheckCircle2, RotateCcw } from 'lucide-react';
-import { useWorkspace } from '@/components/WorkspaceProvider';
+import { useWorkspace } from '@/components/layout/WorkspaceProvider';
 
 const AUTO_SAVE_DELAY_MS = 2000;
 
@@ -118,14 +118,7 @@ export default function ContextPage() {
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedContent = useRef<string>('');
 
-  // Load context on mount when projectPath exists
-  useEffect(() => {
-    if (projectPath) {
-      handleLoadContext(projectPath);
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handleLoadContext = async (pathToLoad: string) => {
+  const handleLoadContext = useCallback(async (pathToLoad: string) => {
     if (!pathToLoad) return;
 
     setIsLoadingContext(true);
@@ -165,7 +158,14 @@ export default function ContextPage() {
     } finally {
       setIsLoadingContext(false);
     }
-  };
+  }, [addRecentPath, setSyncStatus]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load context whenever projectPath changes
+  useEffect(() => {
+    if (projectPath) {
+      handleLoadContext(projectPath);
+    }
+  }, [projectPath, handleLoadContext]);
 
   const syncContent = async (content: string, path: string) => {
     if (content === lastSavedContent.current) return;
@@ -250,7 +250,7 @@ export default function ContextPage() {
   return (
     <div className="flex-1 min-h-0 overflow-y-auto">
       <div className="p-6 flex flex-col gap-6 max-w-[1200px] mx-auto w-full">
-        <div className="bg-[#18181b] border border-[#27272a] rounded-xl flex flex-col overflow-hidden" style={{ height: '70vh' }}>
+        <div className="bg-[#18181b] border border-[#27272a] rounded-xl flex flex-col overflow-hidden h-[70dvh] min-h-[300px]">
           {/* Toolbar */}
           <div className="h-12 border-b border-[#27272a] bg-[#121214] flex items-center justify-between px-4 shrink-0">
             <div className="flex items-center gap-4">
@@ -312,6 +312,7 @@ export default function ContextPage() {
               </div>
             ) : (
               <textarea
+                aria-label="Shared AI context editor"
                 className="absolute inset-0 w-full h-full bg-transparent resize-none p-5 text-[13px] leading-relaxed font-mono text-zinc-300 focus:outline-none"
                 value={contextData}
                 onChange={(e) => handleContextChange(e.target.value)}

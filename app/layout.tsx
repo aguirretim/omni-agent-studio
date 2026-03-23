@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import AppShell from '@/components/AppShell';
+import AppShell from '@/components/layout/AppShell';
 import './globals.css';
 
 export const dynamic = 'force-dynamic';

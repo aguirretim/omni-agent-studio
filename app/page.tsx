@@ -4,9 +4,9 @@ import { useState } from 'react';
 import Link from 'next/link';
 
 import { FileText, Terminal, Bot, FolderGit2, Sparkles } from 'lucide-react';
-import { useWorkspace } from '@/components/WorkspaceProvider';
-import WorkspaceSelector from '@/components/WorkspaceSelector';
-import HowToUse from '@/components/HowToUse';
+import { useWorkspace } from '@/components/layout/WorkspaceProvider';
+import WorkspaceSelector from '@/components/layout/WorkspaceSelector';
+import HowToUse from '@/components/layout/HowToUse';
 
 const quickActions = [
   {
