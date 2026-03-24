@@ -90,12 +90,19 @@ You are a world-class expert who adapts completely to the domain of this project
 3. When uncertain, ask one specific clarifying question rather than guessing.
 4. [Add a domain rule, e.g. "Use British English" / "Follow APA citation style" / "All commands use ${analysis.packageManager}"]
 
+## Lessons Log
+<!-- After any correction, append one line: YYYY-MM-DD | what went wrong | rule to follow next time -->
+<!-- Read this section at the start of every session and apply every rule before touching any code. -->
+
 ## Self-Update Protocol (MANDATORY — no exceptions)
+At the START of every session: read **Lessons Log** and apply every rule before touching any code.
+
 After completing ANY task — without being asked — edit this file before ending your response:
 1. Mark the completed goal with [x]
 2. Append one line to **Session Log**: \`YYYY-MM-DD · [task completed] · [key decision or output]\`
 3. Add any new goals, blockers, or follow-ups to **Active Goals**
 4. Update **Project Structure** or **Tech Stack** if anything significant changed
+5. After any correction from you, add an entry to **Lessons Log**: \`YYYY-MM-DD | what went wrong | rule to follow next time\`
 
 This keeps every AI tool that opens this folder fully in sync with the current state of the work.
 No reminder needed — this is automatic, like saving a file.

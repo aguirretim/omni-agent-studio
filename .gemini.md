@@ -108,12 +108,19 @@ You are a world-class expert who adapts completely to the domain of this project
 5. Do not modify files in `app/api/` unless explicitly instructed.
 6. Keep the dark-mode zinc/slate design system consistent — do not introduce new color schemes.
 
+## Lessons Log
+<!-- After any correction, append one line: YYYY-MM-DD | what went wrong | rule to follow next time -->
+<!-- Read this section at the start of every session and apply every rule before touching any code. -->
+
 ## Self-Update Protocol (MANDATORY — no exceptions)
+At the START of every session: read **Lessons Log** and apply every rule before touching any code.
+
 After completing ANY task — without being asked — edit this file before ending your response:
 1. Mark the completed goal with [x]
 2. Append one line to **Session Log**: `YYYY-MM-DD · [task completed] · [key decision or output]`
 3. Add any new goals, blockers, or follow-ups to **Active Goals**
 4. Update **Project Structure** if files were added, removed, or repurposed
+5. After any correction from the user, add an entry to **Lessons Log**: `YYYY-MM-DD | what went wrong | rule to follow next time`
 
 This keeps every AI tool that opens this folder fully in sync with the current state of the work.
 No reminder needed — this is automatic, like saving a file.
@@ -210,3 +217,4 @@ No reminder needed — this is automatic, like saving a file.
 - 2026-03-22 · /build-with-agent-team · Skill integration into build skills · Updated build-with-agent-team.md, build-hybrid-team.md, build-smart-delegate.md with full Skill Toolkit tables (core 5 curated + 14 community pack skills); added /explain pre-read gate, /debug error gate, mandatory Phase 4 quality gate (/test-gen + /review-pr), Phase 5 /commit; agent prompt template now includes ERROR HANDLING block; note: route.ts SKILL_* constants not updated (api/ frozen) — re-installing skills via UI would overwrite with old versions
 - 2026-03-22 · /build-with-agent-team · Added 6 skills to website install · Registered SKILL_UX_HEURISTIC, SKILL_WCAG_AUDIT, SKILL_DESIGN_CRITIQUE, SKILL_PEER_REVIEW, SKILL_LITERATURE_REVIEW, SKILL_RESEARCH_SYNTHESIS in route.ts; updated all 3 skill maps (check-status, install-skill, install-all-skills); TOTAL_SKILLS 10→16 in AgentTeams.tsx; 0 TS errors
 - 2026-03-22 · /build-with-agent-team · UI/UX + research skills · Created 6 new skills: /ux-heuristic-review (Nielsen 10 heuristics, 4-severity), /wcag-audit (WCAG 2.1 AA criterion-level), /design-critique (5-dimension: hierarchy/interaction/consistency/accessibility/brand), /peer-review (6-dimension editorial review, major/minor findings), /literature-review (PRISMA-inspired, ≥10 sources, 3 database minimum), /research-synthesis (user-provided sources, consensus/contradiction/gap analysis) · Added UI/UX + research tables to all 3 build skill toolkit sections
+- 2026-03-24 · /build-with-agent-team · Added Lessons Log section to template context + app context · Lessons Log: correction log with date|what went wrong|rule format; Self-Update Protocol updated to mandate reading Lessons Log at session start and writing to it after corrections; synced to .gemini.md + agents.md

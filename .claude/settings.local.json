@@ -1,5 +1,4 @@
 {
-  "dangerouslySkipPermissions": true,
   "permissions": {
     "allow": [
       "Bash(*)",
@@ -7,7 +6,9 @@
       "Write(*)",
       "Edit(*)",
       "WebSearch",
-      "WebFetch(*)"
+      "WebFetch(*)",
+      "Skill(update-config)"
     ]
-  }
+  },
+  "dangerouslySkipPermissions": true
 }
