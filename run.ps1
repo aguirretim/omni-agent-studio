@@ -14,73 +14,57 @@ Write-Host "   OmniAgent Studio" -ForegroundColor White
 Write-Host "  ============================================" -ForegroundColor DarkCyan
 Write-Host ""
 
-# ── Step 1: Ensure Node.js is installed ──────────────────────
+# ── Step 1: Ensure Node.js 18+ is installed ──────────────────
 
+$minNodeMajor = 18
 $nodeCmd = Get-Command node -ErrorAction SilentlyContinue
+$needsInstall = $false
 
 if (-not $nodeCmd) {
-    Write-Host "  Node.js is not installed. Installing automatically..." -ForegroundColor Yellow
+    $needsInstall = $true
+    Write-Fail "Node.js is not installed."
+} else {
+    $rawVer = (node --version 2>&1).ToString().TrimStart('v')
+    $majorVer = [int]($rawVer.Split('.')[0])
+    if ($majorVer -lt $minNodeMajor) {
+        $needsInstall = $true
+        Write-Fail "Node.js v$rawVer is too old (need v$minNodeMajor+)."
+    }
+}
+
+if ($needsInstall) {
     Write-Host ""
-    $installed = $false
+    Write-Step "Installing Node.js LTS via winget..."
+    Write-Info "(You may see a UAC prompt - click Yes to allow)"
+    Write-Host ""
 
-    # Try winget first (available on Windows 10 20H2+ and Windows 11)
-    $winget = Get-Command winget -ErrorAction SilentlyContinue
-    if ($winget) {
-        Write-Step "Installing Node.js via Windows Package Manager..."
-        winget install --id OpenJS.NodeJS.LTS --silent --accept-source-agreements --accept-package-agreements 2>&1 | Out-Null
-        if ($LASTEXITCODE -eq 0) {
-            $installed = $true
-            Write-OK "Node.js installed."
-        }
+    try {
+        winget install OpenJS.NodeJS.LTS --accept-source-agreements --accept-package-agreements 2>&1 | ForEach-Object { Write-Info $_ }
+    } catch {
+        Write-Fail "winget install failed: $_"
+        Write-Host ""
+        Write-Host "  Please install Node.js 20+ manually:" -ForegroundColor Yellow
+        Write-Host "  https://nodejs.org/en/download  (choose LTS)" -ForegroundColor White
+        Start-Process "https://nodejs.org/en/download"
+        Read-Host "`n  Press Enter to exit"
+        exit 1
     }
 
-    # Fallback: download and silently install the MSI
-    if (-not $installed) {
-        try {
-            Write-Step "Fetching latest Node.js LTS version..."
-            $index = Invoke-RestMethod 'https://nodejs.org/dist/index.json'
-            $lts   = $index | Where-Object { $_.lts } | Select-Object -First 1
-            $ver   = $lts.version
-            $arch  = if ([Environment]::Is64BitOperatingSystem) { "x64" } else { "x86" }
-            $url   = "https://nodejs.org/dist/$ver/node-$ver-$arch.msi"
-            $msi   = "$env:TEMP\node-lts-installer.msi"
-
-            Write-Step "Downloading Node.js $ver (~30 MB)..."
-            Invoke-WebRequest -Uri $url -OutFile $msi -UseBasicParsing
-
-            Write-Step "Installing Node.js $ver..."
-            Write-Info "(You may see a security prompt - click Yes to allow the install)"
-            Start-Process msiexec -ArgumentList "/i `"$msi`" /quiet /norestart" -Wait
-            $installed = $true
-            Write-OK "Node.js $ver installed."
-        }
-        catch {
-            Write-Fail "Automatic install failed: $_"
-            Write-Host ""
-            Write-Host "  Please install Node.js manually:" -ForegroundColor Yellow
-            Write-Host "  https://nodejs.org/en/download  (choose LTS)" -ForegroundColor White
-            Write-Host "  Then double-click run.bat again." -ForegroundColor Yellow
-            Start-Process "https://nodejs.org/en/download"
-            Read-Host "`n  Press Enter to exit"
-            exit 1
-        }
-    }
-
-    # Refresh PATH in the current session so we don't need to restart
+    # Refresh PATH so the current session picks up the new install
     $machinePath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
     $userPath    = [System.Environment]::GetEnvironmentVariable("Path", "User")
     $env:Path    = "$machinePath;$userPath"
 
-    # Verify node is now available
     $nodeCmd = Get-Command node -ErrorAction SilentlyContinue
     if (-not $nodeCmd) {
         Write-Host ""
-        Write-Host "  Node.js installed but a window restart is needed." -ForegroundColor Yellow
+        Write-Host "  Node.js was installed but a terminal restart is needed." -ForegroundColor Yellow
         Write-Host "  Close this window and double-click run.bat again." -ForegroundColor White
         Read-Host "`n  Press Enter to exit"
         exit 0
     }
 
+    Write-OK "Node.js installed successfully."
     Write-Host ""
 }
 
