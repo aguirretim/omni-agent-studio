@@ -43,6 +43,7 @@ app/
   agents/page.tsx         — Agent Teams page (AgentTeams component only)
   sessions/page.tsx       — Git session manager (save/commit workspace state)
   api/
+    folder-dialog/route.ts — Spawns PowerShell FolderBrowserDialog; returns selected path (or null if cancelled)
     analyze/route.ts      — Tech stack + folder structure detection
     agent-teams/route.ts  — Agent Teams: enable, install-skill, check-status, launch-terminal, WSL/tmux setup
     commit/route.ts       — Git add + commit for sessions page
@@ -54,7 +55,7 @@ components/
   layout/
     AppShell.tsx          — Sidebar nav + header + WorkspaceProvider wrapper
     WorkspaceProvider.tsx — Global context: projectPath, recentPaths, syncStatus
-    WorkspaceSelector.tsx — Workspace path input + folder browser + recents dropdown
+    WorkspaceSelector.tsx — Workspace path input + native folder picker + recents dropdown (name+parent layout)
     FolderBrowser.tsx     — Full-screen directory browser modal
     HowToUse.tsx          — How to use modal (accessible via ? in header)
   ui/
@@ -218,3 +219,4 @@ No reminder needed — this is automatic, like saving a file.
 - 2026-03-22 · /build-with-agent-team · Added 6 skills to website install · Registered SKILL_UX_HEURISTIC, SKILL_WCAG_AUDIT, SKILL_DESIGN_CRITIQUE, SKILL_PEER_REVIEW, SKILL_LITERATURE_REVIEW, SKILL_RESEARCH_SYNTHESIS in route.ts; updated all 3 skill maps (check-status, install-skill, install-all-skills); TOTAL_SKILLS 10→16 in AgentTeams.tsx; 0 TS errors
 - 2026-03-22 · /build-with-agent-team · UI/UX + research skills · Created 6 new skills: /ux-heuristic-review (Nielsen 10 heuristics, 4-severity), /wcag-audit (WCAG 2.1 AA criterion-level), /design-critique (5-dimension: hierarchy/interaction/consistency/accessibility/brand), /peer-review (6-dimension editorial review, major/minor findings), /literature-review (PRISMA-inspired, ≥10 sources, 3 database minimum), /research-synthesis (user-provided sources, consensus/contradiction/gap analysis) · Added UI/UX + research tables to all 3 build skill toolkit sections
 - 2026-03-24 · /build-with-agent-team · Added Lessons Log section to template context + app context · Lessons Log: correction log with date|what went wrong|rule format; Self-Update Protocol updated to mandate reading Lessons Log at session start and writing to it after corrections; synced to .gemini.md + agents.md
+- 2026-03-25 · /build-with-agent-team · Native folder picker + richer recents · New app/api/folder-dialog/route.ts spawns PowerShell FolderBrowserDialog (fallback to FolderBrowser if PS unavailable); WorkspaceSelector folder icon now calls native OS dialog; recents dropdown shows folder name prominently + parent path below it in monospace zinc-500; dropdown widened to w-80; 0 TS errors

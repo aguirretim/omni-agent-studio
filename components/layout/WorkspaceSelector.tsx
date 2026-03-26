@@ -10,13 +10,22 @@ interface WorkspaceSelectorProps {
   onConnect: (path: string) => void;
 }
 
+/** Split a path into { name, parent } for display in the recents list. */
+function splitPath(p: string): { name: string; parent: string } {
+  const sep = p.includes('/') ? '/' : '\\';
+  const parts = p.replace(/[/\\]+$/, '').split(/[/\\]/);
+  const name = parts[parts.length - 1] || p;
+  const parent = parts.slice(0, -1).join(sep) || sep;
+  return { name, parent };
+}
+
 export default function WorkspaceSelector({ onConnect }: WorkspaceSelectorProps) {
   const { projectPath, setProjectPath, recentPaths, addRecentPath, setSyncStatus } = useWorkspace();
 
   const [isFolderBrowserOpen, setIsFolderBrowserOpen] = useState(false);
   const [isRecentsOpen, setIsRecentsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const recentsRef = useRef<HTMLDivElement>(null);
+const recentsRef = useRef<HTMLDivElement>(null);
 
   // Close recent dropdown on click outside
   useEffect(() => {
@@ -29,6 +38,10 @@ export default function WorkspaceSelector({ onConnect }: WorkspaceSelectorProps)
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const handleBrowse = () => {
+    setIsFolderBrowserOpen(true);
+  };
 
   const handleConnect = async (overridePath?: string) => {
     const pathToLoad = overridePath || projectPath;
@@ -63,7 +76,7 @@ export default function WorkspaceSelector({ onConnect }: WorkspaceSelectorProps)
         <div className="flex-1 relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
             <button
-              onClick={() => setIsFolderBrowserOpen(true)}
+              onClick={handleBrowse}
               className="p-1.5 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 rounded-md transition-colors"
               title="Browse for Folder"
               aria-label="Browse for folder"
@@ -100,7 +113,7 @@ export default function WorkspaceSelector({ onConnect }: WorkspaceSelectorProps)
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ duration: 0.1 }}
-                    className="absolute right-0 top-full mt-2 w-72 bg-[#121214] border border-[#27272a] rounded-xl shadow-2xl overflow-hidden z-50 flex flex-col"
+                    className="absolute right-0 top-full mt-2 w-80 bg-[#121214] border border-[#27272a] rounded-xl shadow-2xl overflow-hidden z-50 flex flex-col"
                   >
                     <div className="px-3 py-2 border-b border-[#27272a] bg-[#18181b] text-xs font-semibold text-zinc-400">
                       Recent Workspaces
@@ -109,20 +122,26 @@ export default function WorkspaceSelector({ onConnect }: WorkspaceSelectorProps)
                       {recentPaths.length === 0 ? (
                         <div className="p-4 text-center text-xs text-zinc-600">No recent paths found.</div>
                       ) : (
-                        recentPaths.map((path) => (
-                          <button
-                            key={path}
-                            onClick={() => {
-                              setProjectPath(path);
-                              handleConnect(path);
-                              setIsRecentsOpen(false);
-                            }}
-                            className="w-full text-left p-2 rounded-lg hover:bg-[#18181b] flex items-center gap-3 transition-colors group"
-                          >
-                            <FolderOpen size={14} className="text-zinc-500 group-hover:text-blue-400 shrink-0" />
-                            <span className="text-[12px] text-zinc-300 font-mono truncate">{path}</span>
-                          </button>
-                        ))
+                        recentPaths.map((p) => {
+                          const { name, parent } = splitPath(p);
+                          return (
+                            <button
+                              key={p}
+                              onClick={() => {
+                                setProjectPath(p);
+                                handleConnect(p);
+                                setIsRecentsOpen(false);
+                              }}
+                              className="w-full text-left px-2 py-2.5 rounded-lg hover:bg-[#18181b] flex items-start gap-3 transition-colors group"
+                            >
+                              <FolderOpen size={14} className="text-zinc-500 group-hover:text-blue-400 shrink-0 mt-0.5" />
+                              <span className="flex flex-col min-w-0">
+                                <span className="text-[13px] text-zinc-200 font-medium leading-tight truncate">{name}</span>
+                                <span className="text-[11px] text-zinc-500 font-mono leading-tight truncate mt-0.5">{parent}</span>
+                              </span>
+                            </button>
+                          );
+                        })
                       )}
                     </div>
                   </motion.div>
