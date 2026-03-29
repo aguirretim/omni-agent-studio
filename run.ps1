@@ -72,6 +72,75 @@ $nodeVer = (node --version 2>&1)
 Write-OK "Node.js $nodeVer"
 Write-Host ""
 
+# ── Step 1b: Ensure Git for Windows is installed (provides git-bash for Claude Code) ──
+
+$gitCmd = Get-Command git -ErrorAction SilentlyContinue
+$needsGit = $false
+
+if (-not $gitCmd) {
+    $needsGit = $true
+    Write-Fail "Git is not installed."
+} else {
+    Write-OK "Git $(git --version 2>&1)"
+}
+
+if ($needsGit) {
+    Write-Host ""
+    Write-Step "Installing Git for Windows via winget..."
+    Write-Info "(Claude Code requires git-bash which ships with Git for Windows)"
+    Write-Host ""
+
+    try {
+        winget install Git.Git --accept-source-agreements --accept-package-agreements 2>&1 | ForEach-Object { Write-Info $_ }
+    } catch {
+        Write-Fail "winget install failed: $_"
+        Write-Host ""
+        Write-Host "  Please install Git for Windows manually:" -ForegroundColor Yellow
+        Write-Host "  https://git-scm.com/downloads/win" -ForegroundColor White
+        Start-Process "https://git-scm.com/downloads/win"
+        Read-Host "`n  Press Enter to exit"
+        exit 1
+    }
+
+    # Refresh PATH so the current session picks up the new install
+    $machinePath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+    $userPath    = [System.Environment]::GetEnvironmentVariable("Path", "User")
+    $env:Path    = "$machinePath;$userPath"
+
+    $gitCmd = Get-Command git -ErrorAction SilentlyContinue
+    if (-not $gitCmd) {
+        Write-Host ""
+        Write-Host "  Git was installed but a terminal restart is needed." -ForegroundColor Yellow
+        Write-Host "  Close this window and double-click run.bat again." -ForegroundColor White
+        Read-Host "`n  Press Enter to exit"
+        exit 0
+    }
+
+    Write-OK "Git installed successfully."
+    Write-Host ""
+}
+
+# Ensure CLAUDE_CODE_GIT_BASH_PATH is set for Claude Code
+$bashExe = $null
+$gitPath = (Get-Command git -ErrorAction SilentlyContinue).Source
+if ($gitPath) {
+    # git.exe is typically at ...\Git\cmd\git.exe — bash.exe is at ...\Git\bin\bash.exe
+    $gitRoot = Split-Path (Split-Path $gitPath)
+    $candidateBash = Join-Path $gitRoot "bin\bash.exe"
+    if (Test-Path $candidateBash) { $bashExe = $candidateBash }
+}
+# Fallback: check common install path
+if (-not $bashExe -and (Test-Path "C:\Program Files\Git\bin\bash.exe")) {
+    $bashExe = "C:\Program Files\Git\bin\bash.exe"
+}
+if ($bashExe) {
+    $env:CLAUDE_CODE_GIT_BASH_PATH = $bashExe
+    Write-OK "Git bash: $bashExe"
+} else {
+    Write-Info "Could not locate bash.exe — Claude Code may prompt you to set CLAUDE_CODE_GIT_BASH_PATH"
+}
+Write-Host ""
+
 # ── Step 2: Install npm dependencies if needed ───────────────
 
 if (-not (Test-Path "node_modules")) {
