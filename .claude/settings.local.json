@@ -1,14 +1,22 @@
 {
   "permissions": {
     "allow": [
-      "Bash(*)",
-      "Read(*)",
-      "Write(*)",
-      "Edit(*)",
-      "WebSearch",
-      "WebFetch(*)",
-      "Skill(update-config)"
+      "Bash(git clone:*)",
+      "Bash(git init:*)",
+      "Bash(git remote:*)",
+      "Bash(git fetch:*)",
+      "Bash(git checkout:*)",
+      "Bash(git --version)",
+      "Bash(/cmd//c \"git clone https://github.com/aguirretim/omni-agent-studio.git \"\"C:\\\\Users\\\\aguir\\\\Documents\\\\omni agent studio\"\"\")",
+      "Bash(cmd.exe /c \"git --version\")",
+      "Bash(echo $PATH)",
+      "Bash(/mingw64/bin/git.exe --version)",
+      "Bash(powershell.exe -Command \"git clone https://github.com/aguirretim/omni-agent-studio.git ''C:\\\\Users\\\\aguir\\\\Documents\\\\omni agent studio''\")",
+      "Bash(curl --version)",
+      "Bash(winget search:*)",
+      "Bash(where nvm:*)",
+      "Bash(where fnm:*)",
+      "Bash(where node:*)"
     ]
-  },
-  "dangerouslySkipPermissions": true
+  }
 }
