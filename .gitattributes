@@ -1,0 +1,4 @@
+# Force Windows line endings for scripts that must run on Windows
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf

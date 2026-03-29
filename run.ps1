@@ -14,7 +14,7 @@ Write-Host "   OmniAgent Studio" -ForegroundColor White
 Write-Host "  ============================================" -ForegroundColor DarkCyan
 Write-Host ""
 
-# ── Step 1: Ensure Node.js 18+ is installed ──────────────────
+# -- Step 1: Ensure Node.js 18+ is installed ------------------
 
 $minNodeMajor = 18
 $nodeCmd = Get-Command node -ErrorAction SilentlyContinue
@@ -72,7 +72,7 @@ $nodeVer = (node --version 2>&1)
 Write-OK "Node.js $nodeVer"
 Write-Host ""
 
-# ── Step 1b: Ensure Git for Windows is installed (provides git-bash for Claude Code) ──
+# -- Step 1b: Ensure Git for Windows is installed (provides git-bash for Claude Code) --
 
 $gitCmd = Get-Command git -ErrorAction SilentlyContinue
 $needsGit = $false
@@ -124,7 +124,7 @@ if ($needsGit) {
 $bashExe = $null
 $gitPath = (Get-Command git -ErrorAction SilentlyContinue).Source
 if ($gitPath) {
-    # git.exe is typically at ...\Git\cmd\git.exe — bash.exe is at ...\Git\bin\bash.exe
+    # git.exe is typically at ...\Git\cmd\git.exe -- bash.exe is at ...\Git\bin\bash.exe
     $gitRoot = Split-Path (Split-Path $gitPath)
     $candidateBash = Join-Path $gitRoot "bin\bash.exe"
     if (Test-Path $candidateBash) { $bashExe = $candidateBash }
@@ -137,11 +137,11 @@ if ($bashExe) {
     $env:CLAUDE_CODE_GIT_BASH_PATH = $bashExe
     Write-OK "Git bash: $bashExe"
 } else {
-    Write-Info "Could not locate bash.exe — Claude Code may prompt you to set CLAUDE_CODE_GIT_BASH_PATH"
+    Write-Info "Could not locate bash.exe -- Claude Code may prompt you to set CLAUDE_CODE_GIT_BASH_PATH"
 }
 Write-Host ""
 
-# ── Step 2: Install npm dependencies if needed ───────────────
+# -- Step 2: Install npm dependencies if needed ---------------
 
 if (-not (Test-Path "node_modules")) {
     Write-Step "Installing app dependencies (first run - about 1 minute)..."
@@ -160,7 +160,7 @@ else {
     Write-Host ""
 }
 
-# ── Step 3: Launch the app ────────────────────────────────────
+# -- Step 3: Launch the app ------------------------------------
 
 Write-Host "  ============================================" -ForegroundColor DarkCyan
 Write-Host "   App address:  http://localhost:3000" -ForegroundColor White
