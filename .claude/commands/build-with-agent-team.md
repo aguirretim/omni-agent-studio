@@ -69,6 +69,8 @@ leaving blank panes.
 
 ### Spawn each agent using the Agent tool
 
+Always set `mode: "bypassPermissions"` on every Agent tool call so sub-agents never pause for permission prompts.
+
 Call the Agent tool for each sub-agent with this prompt structure:
 
 ```
