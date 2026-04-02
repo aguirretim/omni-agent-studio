@@ -29,6 +29,41 @@ From this file, extract and internalize before proceeding:
 
 If no context file exists, note the absence and proceed without it.
 
+## Phase 0.5: Skill Auto-Selection
+
+Before planning, analyze the task description and select 3–5 skills that best match it. Write your selection to AGENT_TASKS.md under \`## Selected Skills\`.
+
+**Skill taxonomy — match task keywords to skills:**
+
+| Task involves... | Use these skills |
+|---|---|
+| build / implement / create / add / feature | \`/test-gen\` (verify), \`/review-pr\` (before commit), \`/commit\` (final) |
+| bug / fix / error / broken / failing / crash | \`/debug\`, \`/smart-fix\`, \`/test-gen\` (verify fix) |
+| review / PR / pull request / merge | \`/review-pr\`, \`/code-reviewer\` |
+| refactor / clean / optimize / restructure | \`/refactor-clean\`, \`/tech-debt\`, \`/review-pr\` |
+| test / testing / spec / coverage / jest / vitest | \`/test-gen\`, \`/debug\` |
+| UI / UX / design / component / frontend / layout | \`/ux-heuristic-review\`, \`/design-critique\` |
+| accessibility / a11y / WCAG / ARIA | \`/wcag-audit\` |
+| security / vulnerability / auth / XSS / CSRF | \`/security-hardening\` |
+| explain / document / docs / README | \`/explain\`, \`/doc-generate\` |
+| PRD / requirements / feature plan / user story | \`/create-prd\`, \`/convert-prd\` |
+| autonomous / loop / iterate / automate / Ralph | \`/ralph\`, \`/create-prd\` |
+| research / literature / survey | \`/literature-review\`, \`/research-synthesis\` |
+| commit / save / checkpoint | \`/commit\`, \`/checkpoint\` |
+
+**Always include for any code-change task:**
+- \`/review-pr\` — run after the last implementation phase, before committing
+- \`/commit\` — final step; use the \`/commit\` skill to write the commit message
+
+**How to apply:**
+1. Output a \`## Selected Skills\` block in AGENT_TASKS.md listing each skill and why it was chosen
+2. Include a \`USE THESE SKILLS:\` block in every spawned agent's prompt:
+   \`\`\`
+   USE THESE SKILLS (inject at the right phase):
+   - /skill-name: [when to use it for this specific task]
+   \`\`\`
+3. At the end of every agent team run, the integration/final agent MUST run \`/review-pr\` then \`/commit\`
+
 ## Step 1: Analyze & Plan
 
 Before spawning any agents:
@@ -76,6 +111,8 @@ leaving blank panes.
 
 ### Spawn each agent using the Agent tool
 
+Always set \`mode: "bypassPermissions"\` on every Agent tool call so sub-agents never pause for permission prompts.
+
 Call the Agent tool for each sub-agent with this prompt structure:
 
 \`\`\`
@@ -120,6 +157,16 @@ the main pane.
 - Production-quality output from the start
 - When uncertain, ask the lead (pane 0) before proceeding
 - **Research gate**: If any step depends on a factual claim, library version, API compatibility, or real-world data — run \`/fact-check [claim]\` as a sub-step before implementing. Paste the verified findings into AGENT_TASKS.md so all agents share the same ground truth.
+
+**Skill Toolkit** (19 available — auto-selected in Phase 0.5):
+| Category | Skills |
+|---|---|
+| Build | \`/build-with-agent-team\`, \`/build-hybrid-team\`, \`/build-smart-delegate\` |
+| Quality | \`/test-gen\`, \`/review-pr\`, \`/debug\`, \`/smart-fix\`, \`/refactor-clean\`, \`/tech-debt\` |
+| Dev workflow | \`/commit\`, \`/checkpoint\`, \`/explain\`, \`/doc-generate\` |
+| UI/UX | \`/ux-heuristic-review\`, \`/design-critique\`, \`/wcag-audit\` |
+| Research | \`/literature-review\`, \`/research-synthesis\`, \`/fact-check\` |
+| Autonomous | \`/ralph\`, \`/create-prd\`, \`/convert-prd\` |
 
 ## Context Update (MANDATORY — run after every use)
 
@@ -4015,6 +4062,187 @@ Framework generates runbooks with three components:
 - Recovery steps
 `;
 
+// ── Ralph skills ──────────────────────────────────────────────────────────────
+const SKILL_RALPH = `# Ralph — Autonomous Development Loop
+
+You are an autonomous coding agent running one iteration of the Ralph loop.
+Your task list comes from the **Active Goals** in the shared context file — no PRD or prd.json needed.
+
+## Your Task
+
+1. Read the shared context file:
+   \`\`\`bash
+   cat .claude.md 2>/dev/null || cat .gemini.md 2>/dev/null || cat agents.md 2>/dev/null
+   \`\`\`
+2. Read \`progress.txt\` if it exists — check the **Codebase Patterns** section at the top first
+3. Find the **first \`- [ ]\` item** in the \`## Active Goals\` section — this is the goal to implement
+   - Skip any \`- [x]\` items (already done)
+   - If no \`[ ]\` items remain, skip to the Completion Check
+4. Implement that ONE goal — keep changes minimal and focused
+5. Run quality checks:
+   \`\`\`bash
+   npm run typecheck 2>/dev/null || npx tsc --noEmit 2>/dev/null || true
+   \`\`\`
+   Then run lint/tests if configured in the project.
+6. Before committing: check if any edited directories have a CLAUDE.md worth updating with reusable patterns
+7. If quality checks pass, commit ALL changes:
+   \`\`\`bash
+   git add -A && git commit -m "feat: [goal title]"
+   \`\`\`
+8. In the shared context file, mark the completed goal: change \`- [ ]\` → \`- [x]\`
+9. Sync the updated context to all three flavors:
+   \`\`\`bash
+   cp .claude.md .gemini.md && cp .claude.md agents.md
+   \`\`\`
+10. Append a one-line entry to the **Session Log** in the shared context:
+    \`\`\`
+    YYYY-MM-DD · /ralph · [what was implemented] · [key files changed]
+    \`\`\`
+11. Append to \`progress.txt\` (create if missing, never replace):
+    \`\`\`
+    ## [ISO date] - [Goal title]
+    - What was implemented
+    - Files changed
+    - **Learnings for future iterations:**
+      - Patterns discovered
+      - Gotchas encountered
+    ---
+    \`\`\`
+12. If you discover **reusable codebase patterns**, add them to the \`## Codebase Patterns\` section at the TOP of \`progress.txt\` (create the section if it doesn't exist).
+
+## Completion Check
+
+After completing a goal, re-read the \`## Active Goals\` section and check if ALL items have \`[x]\`.
+
+- If ALL goals are \`[x]\`: reply with \`<promise>COMPLETE</promise>\`
+- If uncompleted goals remain: end your response normally — the next Ralph iteration will continue
+
+## Quality Rules
+
+- Never commit broken code
+- Keep changes focused — one goal per iteration
+- Follow existing code patterns in the project
+- For UI changes: verify in browser if browser tools are available; note manual verification needed otherwise
+- Keep CI green (typecheck must pass)
+- The shared context file is the source of truth — always sync .gemini.md and agents.md after modifying .claude.md
+
+## Important
+
+- Work on ONE goal per iteration
+- Do NOT create prd.json — the shared context is your task list
+- The \`<promise>COMPLETE</promise>\` signal is how the Ralph loop knows to stop
+- Read Codebase Patterns in progress.txt BEFORE starting any implementation
+`;
+
+const SKILL_CREATE_PRD = `# Create PRD — Product Requirements Document Generator
+
+Given a task or feature description, produce a detailed PRD with right-sized user stories for the Ralph autonomous development loop.
+
+## Your Task
+
+1. Analyze the provided description: \`$ARGUMENTS\`
+2. Break it into **right-sized user stories** — each story must:
+   - Fit within a single AI context window (~2000 lines of code changes max)
+   - Be independently testable
+   - Have a clear pass/fail definition
+   - Examples of good sizes: "Add X column to Y table", "Create Z component", "Wire up A endpoint"
+   - Examples too large: "Build the entire dashboard", "Refactor all services"
+3. Order stories by dependency (things that must be built first get priority 1, 2, etc.)
+4. Output a markdown PRD followed by a \`prd.json\` code block
+
+## Output Format
+
+First, write a readable markdown PRD:
+
+\`\`\`
+# PRD: [Feature Name]
+
+## Overview
+[2-3 sentence description]
+
+## Branch
+ralph/[kebab-case-feature-name]
+
+## User Stories
+
+### S1: [Story Title] (Priority 1)
+**As a** [user type], **I want** [goal], **so that** [benefit].
+
+**Acceptance Criteria:**
+- [ ] Criterion 1
+- [ ] Criterion 2
+
+**Implementation hints:** [optional: files to modify, patterns to follow]
+
+---
+[repeat for each story]
+\`\`\`
+
+Then output the machine-readable prd.json:
+
+\`\`\`json
+{
+  "branchName": "ralph/[kebab-case-feature-name]",
+  "stories": [
+    {
+      "id": "S1",
+      "title": "[Story Title]",
+      "description": "[Full story description including acceptance criteria]",
+      "passes": false,
+      "priority": 1
+    }
+  ]
+}
+\`\`\`
+
+## Tips for Good PRDs
+
+- 3–8 stories is the sweet spot for most features
+- Database/schema changes first (priority 1), then backend, then UI
+- Each story title should be a verb phrase: "Add X", "Create Y", "Wire up Z"
+- Description should include enough context for an AI agent with no prior knowledge
+- If the task is already small enough for one story, one story is fine
+`;
+
+const SKILL_CONVERT_PRD = `# Convert PRD — Markdown to prd.json
+
+Convert a markdown Product Requirements Document into the structured prd.json format required by the Ralph autonomous development loop.
+
+## Your Task
+
+1. Read the markdown PRD provided in \`$ARGUMENTS\` (or ask the user to paste it if no argument given)
+2. Extract:
+   - Branch name (look for a "Branch:" line or derive from the feature title as \`ralph/kebab-case-name\`)
+   - All user stories with their IDs, titles, descriptions, and implied priority order
+3. Output the prd.json to the project root
+
+## prd.json Schema
+
+\`\`\`json
+{
+  "branchName": "ralph/feature-name",
+  "stories": [
+    {
+      "id": "S1",
+      "title": "Story title — short verb phrase",
+      "description": "Full description including acceptance criteria from the markdown",
+      "passes": false,
+      "priority": 1
+    }
+  ]
+}
+\`\`\`
+
+## Rules
+
+- All stories start with \`"passes": false\`
+- \`priority\` is an integer: 1 = highest priority (implement first)
+- Keep descriptions comprehensive — an AI agent will read these with no other context
+- Branch name format: \`ralph/[feature-name-in-kebab-case]\`
+- Write the file to \`{projectRoot}/prd.json\`
+- After writing, confirm: "prd.json written with N stories. Run \`/ralph\` to start the autonomous loop."
+`;
+
 // ── Skill Packs registry ──────────────────────────────────────────────────────
 
 const SKILL_PACKS: Record<string, {
@@ -4089,7 +4317,12 @@ const SKILL_PACKS: Record<string, {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { action, projectPath, plan, agentCount } = body;
+    const { action, projectPath, plan, agentCount, terminalType } = body;
+    // terminalType validation: must be one of the allowed values if provided
+    const VALID_TERMINAL_TYPES = ['auto', 'wt-tmux', 'wt-ps', 'cmd-ps'] as const;
+    type TerminalType = typeof VALID_TERMINAL_TYPES[number];
+    const safeTerminalType: TerminalType =
+      VALID_TERMINAL_TYPES.includes(terminalType) ? terminalType : 'auto';
 
     // CSRF check (S-H3)
     const origin = req.headers.get('origin');
@@ -4143,6 +4376,9 @@ export async function POST(req: NextRequest) {
         'peer-review':          { filename: 'peer-review.md',          content: SKILL_PEER_REVIEW },
         'literature-review':    { filename: 'literature-review.md',    content: SKILL_LITERATURE_REVIEW },
         'research-synthesis':   { filename: 'research-synthesis.md',   content: SKILL_RESEARCH_SYNTHESIS },
+        'ralph':                { filename: 'ralph.md',                content: SKILL_RALPH },
+        'create-prd':           { filename: 'create-prd.md',           content: SKILL_CREATE_PRD },
+        'convert-prd':          { filename: 'convert-prd.md',          content: SKILL_CONVERT_PRD },
       };
 
       const skills: Record<string, 'missing' | 'current' | 'outdated'> = {};
@@ -4218,6 +4454,9 @@ export async function POST(req: NextRequest) {
         'peer-review':          { filename: 'peer-review.md',          content: SKILL_PEER_REVIEW },
         'literature-review':    { filename: 'literature-review.md',    content: SKILL_LITERATURE_REVIEW },
         'research-synthesis':   { filename: 'research-synthesis.md',   content: SKILL_RESEARCH_SYNTHESIS },
+        'ralph':                { filename: 'ralph.md',                content: SKILL_RALPH },
+        'create-prd':           { filename: 'create-prd.md',           content: SKILL_CREATE_PRD },
+        'convert-prd':          { filename: 'convert-prd.md',          content: SKILL_CONVERT_PRD },
       };
 
       const skill = skillMap[skillName];
@@ -4252,6 +4491,9 @@ export async function POST(req: NextRequest) {
         'peer-review':          { filename: 'peer-review.md',          content: SKILL_PEER_REVIEW },
         'literature-review':    { filename: 'literature-review.md',    content: SKILL_LITERATURE_REVIEW },
         'research-synthesis':   { filename: 'research-synthesis.md',   content: SKILL_RESEARCH_SYNTHESIS },
+        'ralph':                { filename: 'ralph.md',                content: SKILL_RALPH },
+        'create-prd':           { filename: 'create-prd.md',           content: SKILL_CREATE_PRD },
+        'convert-prd':          { filename: 'convert-prd.md',          content: SKILL_CONVERT_PRD },
       };
 
       const commandsDir = path.join(resolvedProjectPath!, '.claude', 'commands');
@@ -4285,23 +4527,40 @@ export async function POST(req: NextRequest) {
         p.replace(/^([A-Za-z]):/, (_, l) => `/mnt/${l.toLowerCase()}`).replace(/\\/g, '/');
 
       // ── Capability detection ─────────────────────────────────────────────
+      // When the user has chosen a specific terminal type, skip detection and
+      // force that tier. When 'auto', detect capabilities as before.
       let hasWindowsTerminal = false;
       let hasTmux = false;
       let hasClaudeInWsl = false;
 
-      try { execSync('where wt', { stdio: 'pipe', timeout: 3000 }); hasWindowsTerminal = true; } catch {}
-      try {
-        execSync('where wsl', { stdio: 'pipe', timeout: 3000 });
-        const out = execSync('wsl -e which tmux', { stdio: 'pipe', timeout: 5000 }).toString().trim();
-        hasTmux = out.length > 0;
-        // Check if node exists inside WSL (claude npm shim requires it)
-        if (hasTmux) {
-          try {
-            execSync('wsl -e node --version', { stdio: 'pipe', timeout: 5000 });
-            hasClaudeInWsl = true;
-          } catch {}
-        }
-      } catch {}
+      if (safeTerminalType === 'auto' || safeTerminalType === 'wt-tmux' || safeTerminalType === 'wt-ps') {
+        try { execSync('where wt', { stdio: 'pipe', timeout: 3000 }); hasWindowsTerminal = true; } catch {}
+      }
+      if (safeTerminalType === 'auto' || safeTerminalType === 'wt-tmux') {
+        try {
+          execSync('where wsl', { stdio: 'pipe', timeout: 3000 });
+          const out = execSync('wsl -e which tmux', { stdio: 'pipe', timeout: 5000 }).toString().trim();
+          hasTmux = out.length > 0;
+          if (hasTmux) {
+            try {
+              execSync('wsl -e node --version', { stdio: 'pipe', timeout: 5000 });
+              hasClaudeInWsl = true;
+            } catch {}
+          }
+        } catch {}
+      }
+
+      // Apply forced terminal type overrides
+      if (safeTerminalType === 'wt-tmux') {
+        // Force tmux path — user explicitly chose it
+        hasWindowsTerminal = true; hasTmux = true; hasClaudeInWsl = true;
+      } else if (safeTerminalType === 'wt-ps') {
+        // Force Windows Terminal + PowerShell path
+        hasWindowsTerminal = true; hasTmux = false; hasClaudeInWsl = false;
+      } else if (safeTerminalType === 'cmd-ps') {
+        // Force legacy cmd.exe + PowerShell path
+        hasWindowsTerminal = false; hasTmux = false; hasClaudeInWsl = false;
+      }
 
       // ── Tier 1: Windows Terminal + WSL tmux (full split-pane experience) ──
       // Only use tmux when Windows Terminal is available — it renders Unicode
@@ -4321,7 +4580,31 @@ export async function POST(req: NextRequest) {
           `SESSION="${SESSION}-$$"`,
           'tmux kill-session -t "$SESSION" 2>/dev/null',
           '',
-          'tmux new-session -d -s "$SESSION" "claude --teammate-mode tmux"',
+          // Fix: pass CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 via -e so it reaches the
+          // tmux session even when a tmux server is already running from a different
+          // parent process (which would not inherit exported vars from this script).
+          // Also set it inline in the bash -c command as a belt-and-suspenders.
+          'tmux new-session -d -s "$SESSION" -e "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1" -e "LANG=C.UTF-8" "bash -c \'export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 LANG=C.UTF-8; exec claude --dangerously-skip-permissions --teammate-mode tmux\'"',
+          '',
+          // F5 = clipboard path converter (no dialog, always works from tmux run-shell).
+          // Workflow: in Explorer, Shift+Right-click a file → "Copy as path", then F5.
+          // Converts Windows path C:\... → /mnt/c/... and pastes as @"..." reference.
+          'cat > /tmp/.omni-ref-file.sh << \'REFEOF\'',
+          '#!/bin/bash',
+          '# Read clipboard; Windows "Copy as path" wraps path in quotes — strip them',
+          'raw=$(powershell.exe -NoProfile -NonInteractive -Command \'Get-Clipboard\' 2>/dev/null | tr -d \'\\r\' | head -1)',
+          'win=$(printf \'%s\' "$raw" | sed \'s/^"//; s/"$//\')',
+          '[ -z "$win" ] && exit 0',
+          '# Convert Windows path (C:\\...) to WSL /mnt/... path; pass others unchanged',
+          'case "$win" in',
+          '  [A-Za-z]:\\\\*) wsl_path=$(wslpath -u "$win") ;;',
+          '  *) wsl_path="$win" ;;',
+          'esac',
+          'printf \'@"%s" \' "$wsl_path" | tmux load-buffer -',
+          'tmux paste-buffer',
+          'REFEOF',
+          'chmod +x /tmp/.omni-ref-file.sh',
+          'tmux bind-key -n F5 run-shell /tmp/.omni-ref-file.sh',
           '',
         ];
 
@@ -4338,7 +4621,15 @@ export async function POST(req: NextRequest) {
 
         lines.push(
           '',
+          // ── Mouse config: enable scroll/click while restoring right-click paste ──
+          // tmux mouse-on intercepts ALL mouse events including button 3 (right-click),
+          // which breaks Windows Terminal's native right-click-to-paste.
+          // The bind-key below re-routes right-click to paste from the Windows
+          // clipboard via Get-Clipboard, restoring native WT behavior.
           'tmux set-option -g mouse on',
+          'tmux set-option -g default-terminal "screen-256color"',
+          // Right-click → paste from Windows clipboard (fixes right-click in WT+tmux)
+          'tmux bind-key -n MouseDown3Pane run "powershell.exe -NoProfile -NonInteractive -Command \'Get-Clipboard\' 2>/dev/null | tr -d \'\\r\' | tmux load-buffer -; tmux paste-buffer"',
           'tmux attach-session -t "$SESSION"',
         );
 
@@ -4347,7 +4638,8 @@ export async function POST(req: NextRequest) {
         const scriptWslPath = toWslPath(scriptWinPath);
 
         // C3: no shell interpolation — all arguments passed as array
-        const wtProc = spawn('wt.exe', ['--title', 'Agent Team', 'wsl.exe', 'bash', scriptWslPath], { shell: false });
+        const windowTitle = path.basename(projectPath);
+        const wtProc = spawn('wt.exe', ['--title', windowTitle, 'wsl.exe', 'bash', scriptWslPath], { shell: false });
         wtProc.on('error', (err) => console.error('[agent-teams] wt-tmux error:', err.message));
         return NextResponse.json({ success: true, mode: 'wt-tmux' });
       }
@@ -4367,14 +4659,14 @@ export async function POST(req: NextRequest) {
           `Write-Host ''`,
         );
       }
-      ps1Lines.push('claude --teammate-mode in-process');
+      ps1Lines.push('claude --dangerously-skip-permissions --teammate-mode in-process');
 
       const ps1Path = path.join(projectPath, '.agent-team-launch.ps1');
       fs.writeFileSync(ps1Path, ps1Lines.join('\r\n'), { encoding: 'utf8' });
 
       if (hasWindowsTerminal) {
         // C3: no shell interpolation — all arguments passed as array
-        const wtPs1Proc = spawn('wt.exe', ['--', 'powershell', '-NoExit', '-ExecutionPolicy', 'Bypass', '-File', ps1Path], { shell: false });
+        const wtPs1Proc = spawn('wt.exe', ['--title', path.basename(projectPath), '--', 'powershell', '-NoExit', '-ExecutionPolicy', 'Bypass', '-File', ps1Path], { shell: false });
         wtPs1Proc.on('error', (err) => console.error('[agent-teams] wt launch error:', err.message));
         return NextResponse.json({ success: true, mode: 'wt-cmd' });
       }

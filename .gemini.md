@@ -27,6 +27,9 @@ AGENT_TASKS.md            — Task tracker: records which tool handled each phas
   build-smart-delegate.md   — /build-smart-delegate skill
   fact-check.md             — /fact-check skill
   checkpoint.md             — /checkpoint skill
+  ralph.md                  — /ralph skill (autonomous loop: read prd.json → implement → commit → update → repeat)
+  create-prd.md             — /create-prd skill (generate PRD + prd.json from task description)
+  convert-prd.md            — /convert-prd skill (convert markdown PRD to prd.json)
   ux-heuristic-review.md    — /ux-heuristic-review skill (Nielsen 10 heuristics, 4-severity)
   wcag-audit.md             — /wcag-audit skill (WCAG 2.1 AA criterion-level)
   design-critique.md        — /design-critique skill (5-dimension: hierarchy/interaction/consistency/accessibility/brand)
@@ -42,14 +45,16 @@ app/
   tools/page.tsx          — AI Tools launcher (4 ToolCard components)
   agents/page.tsx         — Agent Teams page (AgentTeams component only)
   sessions/page.tsx       — Git session manager (save/commit workspace state)
+  ralph/page.tsx          — Ralph autonomous loop dashboard: Goals tab (Active Goals from shared context), Progress tab, How It Works
   api/
     folder-dialog/route.ts — Spawns PowerShell FolderBrowserDialog; returns selected path (or null if cancelled)
     analyze/route.ts      — Tech stack + folder structure detection
-    agent-teams/route.ts  — Agent Teams: enable, install-skill, check-status, launch-terminal, WSL/tmux setup
+    agent-teams/route.ts  — Agent Teams: enable, install-skill, check-status, launch-terminal, WSL/tmux setup; 19 skills registered
     commit/route.ts       — Git add + commit for sessions page
     context/route.ts      — Read + sync shared context files
     fs/route.ts           — Directory browser for FolderBrowser modal
     terminal/route.ts     — Spawn interactive terminal windows for AI tools
+    ralph/route.ts        — Ralph file I/O: read-progress, parse-goals (reads Active Goals from shared context)
 
 components/
   layout/
@@ -156,6 +161,9 @@ No reminder needed — this is automatic, like saving a file.
 - [x] Remove stale Headless mode docs from HowToUse (H13) — confirmed removed
 - [x] Add 5 new skills (commit, review-pr, debug, test-gen, explain) + install-all action + merge install buttons into one
 - [x] Fix remaining medium/low items from Round 3 REVIEW_REPORT.md (Q-M2/M3, Q-L1/L2, etc.)
+- [x] Implement Ralph autonomous loop: /ralph, /create-prd, /convert-prd skills + Ralph page + app/api/ralph/route.ts
+- [x] Simplify Ralph to use shared context Active Goals — no prd.json, no PRD workflow required
+- [x] Auto-select best skills in /build-with-agent-team: Phase 0.5 taxonomy, plan textarea in Launch tab, live suggested-skills panel
 
 ## Session Log
 - 2026-03-18 · Initial redesign — decomposed 617-line page.tsx into routed pages + components per DESIGN_SPEC.md
@@ -220,3 +228,9 @@ No reminder needed — this is automatic, like saving a file.
 - 2026-03-22 · /build-with-agent-team · UI/UX + research skills · Created 6 new skills: /ux-heuristic-review (Nielsen 10 heuristics, 4-severity), /wcag-audit (WCAG 2.1 AA criterion-level), /design-critique (5-dimension: hierarchy/interaction/consistency/accessibility/brand), /peer-review (6-dimension editorial review, major/minor findings), /literature-review (PRISMA-inspired, ≥10 sources, 3 database minimum), /research-synthesis (user-provided sources, consensus/contradiction/gap analysis) · Added UI/UX + research tables to all 3 build skill toolkit sections
 - 2026-03-24 · /build-with-agent-team · Added Lessons Log section to template context + app context · Lessons Log: correction log with date|what went wrong|rule format; Self-Update Protocol updated to mandate reading Lessons Log at session start and writing to it after corrections; synced to .gemini.md + agents.md
 - 2026-03-25 · /build-with-agent-team · Native folder picker + richer recents · New app/api/folder-dialog/route.ts spawns PowerShell FolderBrowserDialog (fallback to FolderBrowser if PS unavailable); WorkspaceSelector folder icon now calls native OS dialog; recents dropdown shows folder name prominently + parent path below it in monospace zinc-500; dropdown widened to w-80; 0 TS errors
+- 2026-03-31 · Tmux file reference F5 keybinding · --dangerously-skip-permissions restored to tmux command (settings.local.json approach was broken); F5 keybinding added to tmux session: opens Windows OpenFileDialog, converts path to WSL format via wslpath, pastes @"wsl/path" into Claude input; F5 hint shown in Launch tab when split-pane mode active · 0 TS errors
+- 2026-03-31 · --dangerously-skip-permissions added to all Claude launches · terminal/route.ts bat file, agent-teams Tier 1 tmux, Tier 2 PS1 all updated; launch-headless already had it · 0 TS errors
+- 2026-03-31 · /build-with-agent-team · Ralph simplified to use shared context · /ralph skill rewritten: reads Active Goals from .claude.md, marks [x] on completion, syncs .gemini.md+agents.md, no prd.json needed · parse-goals action added to ralph/route.ts · Ralph page rewritten: Goals tab (live Active Goals list, progress bar, "Up next" highlight), Progress tab, How It Works; PRD/Archive tabs removed · 0 TS errors
+- 2026-03-31 · /build-with-agent-team · Skill auto-selection · Added Phase 0.5 taxonomy section to build-with-agent-team.md + SKILL_CLAUDE_ONLY; 13-category keyword→skill map; quality gates (/review-pr + /commit) always included for code tasks; Launch tab gains plan textarea + live orange skill chips that update as user types · 0 TS errors
+- 2026-03-31 · /build-with-agent-team · Ralph autonomous loop integration · Source: https://github.com/snarktank/ralph (14.1k stars) · Added /ralph skill (one-story-per-iteration loop with <promise>COMPLETE</promise> signal), /create-prd (PRD generator), /convert-prd (markdown→prd.json) · New app/ralph/page.tsx: PRD editor/table, progress viewer, archive browser, How It Works tab · New app/api/ralph/route.ts: read-prd, write-prd, read-progress, read-archive actions with CSRF+path-boundary security · AppShell nav: added "Ralph" between Agent Teams and Sessions · Skills registered in agent-teams/route.ts; TOTAL_SKILLS 16→19 in AgentTeams.tsx · 0 TS errors
+- 2026-04-01 · /build-with-agent-team · Terminal type selector · Added terminal picker to Launch tab (Auto / Split-pane tmux / Windows Terminal / PowerShell); AgentTeams.tsx sends terminalType in launch request; route.ts validates + applies override to skip capability detection and force the chosen tier · 0 TS errors

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback, type KeyboardEvent } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo, type KeyboardEvent } from 'react';
 import {
   Users, Zap, Play, Loader2, CheckCircle2, AlertCircle,
   ChevronUp, ChevronDown, FileCode2, Monitor, Info,
@@ -59,6 +59,50 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
 
   // Launch config
   const [agentCount, setAgentCount] = useState<number | 'auto'>('auto');
+  const [plan, setPlan] = useState('');
+  const [terminalType, setTerminalType] = useState<'auto' | 'wt-tmux' | 'wt-ps' | 'cmd-ps'>('auto');
+
+  const suggestedSkills = useMemo(() => {
+    if (!plan.trim()) return [];
+    const text = plan.toLowerCase();
+    const matches: Array<{ skill: string; reason: string }> = [];
+
+    const taxonomy: Array<{ keywords: string[]; skills: string[]; reason: string }> = [
+      { keywords: ['bug','fix','error','broken','failing','crash'], skills: ['/debug', '/smart-fix'], reason: 'debugging' },
+      { keywords: ['review','pull request','merge'], skills: ['/review-pr', '/code-reviewer'], reason: 'code review' },
+      { keywords: ['refactor','clean','optimize','restructure'], skills: ['/refactor-clean', '/tech-debt'], reason: 'refactoring' },
+      { keywords: ['test','testing','spec','coverage','jest','vitest'], skills: ['/test-gen', '/debug'], reason: 'testing' },
+      { keywords: ['ui','ux','design','component','frontend','layout','style'], skills: ['/ux-heuristic-review', '/design-critique'], reason: 'UI/UX' },
+      { keywords: ['accessibility','a11y','wcag','aria'], skills: ['/wcag-audit'], reason: 'accessibility' },
+      { keywords: ['security','vulnerability','auth','xss','csrf'], skills: ['/security-hardening'], reason: 'security' },
+      { keywords: ['explain','document','docs','readme'], skills: ['/explain', '/doc-generate'], reason: 'documentation' },
+      { keywords: ['prd','requirements','feature plan','user story'], skills: ['/create-prd', '/convert-prd'], reason: 'planning' },
+      { keywords: ['autonomous','loop','iterate','automate','ralph'], skills: ['/ralph', '/create-prd'], reason: 'autonomous loop' },
+      { keywords: ['research','literature','survey'], skills: ['/literature-review', '/research-synthesis'], reason: 'research' },
+    ];
+
+    const seen = new Set<string>();
+    for (const entry of taxonomy) {
+      if (entry.keywords.some(k => text.includes(k))) {
+        for (const skill of entry.skills) {
+          if (!seen.has(skill)) {
+            seen.add(skill);
+            matches.push({ skill, reason: entry.reason });
+          }
+        }
+      }
+    }
+
+    // Always include quality gates for any code-change task (build/implement/add/create/feature)
+    const isCodeTask = ['build','implement','add','create','feature','fix','refactor','test'].some(k => text.includes(k));
+    if (isCodeTask) {
+      if (!seen.has('/test-gen')) matches.push({ skill: '/test-gen', reason: 'quality gate' });
+      if (!seen.has('/review-pr')) matches.push({ skill: '/review-pr', reason: 'quality gate' });
+      if (!seen.has('/commit')) matches.push({ skill: '/commit', reason: 'final step' });
+    }
+
+    return matches.slice(0, 8); // max 8 suggestions
+  }, [plan]);
 
   // WSL / tmux
   const [wslStatus, setWslStatus] = useState<WslStatus | null>(null);
@@ -254,7 +298,7 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
       const res = await fetch('/api/agent-teams', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'launch-terminal', projectPath, agentCount: count }),
+        body: JSON.stringify({ action: 'launch-terminal', projectPath, agentCount: count, plan: plan.trim() || undefined, terminalType }),
       });
       const data = await res.json();
       const modeMsg: Record<string, string> = {
@@ -303,7 +347,7 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
 
   const allReady = wslStatus?.wslAvailable && wslStatus?.distroInstalled && wslStatus?.tmuxInstalled && wslStatus?.claudeInWsl;
 
-  const TOTAL_SKILLS = 16;
+  const TOTAL_SKILLS = 19;
   const installedSkillCount = Object.values(skillsInstalled).filter(v => v === 'current').length;
   const allSkillsInstalled = installedSkillCount === TOTAL_SKILLS;
 
@@ -311,8 +355,8 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
     <button
       onClick={handleInstallAllSkills}
       disabled={isInstallingAll || allSkillsInstalled || !projectPath}
-      aria-label={allSkillsInstalled ? 'All skills installed' : installedSkillCount > 0 ? `Install remaining skills, ${installedSkillCount} of ${TOTAL_SKILLS} installed` : 'Install all 16 slash command skills'}
-      title="Install all 10 slash commands into .claude/commands/ of your project"
+      aria-label={allSkillsInstalled ? 'All skills installed' : installedSkillCount > 0 ? `Install remaining skills, ${installedSkillCount} of ${TOTAL_SKILLS} installed` : 'Install all 19 slash command skills'}
+      title="Install all 19 slash commands into .claude/commands/ of your project"
       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
         allSkillsInstalled
           ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 cursor-default'
@@ -482,8 +526,70 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
                     </div>
                   </div>
 
+                  {/* Terminal type */}
+                  <div className="flex flex-col gap-1.5">
+                    <span id="terminal-type-label" className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wider">Terminal</span>
+                    <div role="group" aria-labelledby="terminal-type-label" className="flex items-center gap-1 flex-wrap">
+                      {([
+                        { value: 'auto',    label: 'Auto' },
+                        { value: 'wt-tmux', label: 'Split-pane (tmux)' },
+                        { value: 'wt-ps',   label: 'Windows Terminal' },
+                        { value: 'cmd-ps',  label: 'PowerShell' },
+                      ] as const).map(({ value, label }) => (
+                        <button
+                          key={value}
+                          onClick={() => setTerminalType(value)}
+                          aria-pressed={terminalType === value}
+                          className={`px-2.5 py-1 rounded text-[11px] font-semibold transition-all border ${
+                            terminalType === value
+                              ? 'bg-orange-500/20 text-orange-400 border-orange-500/40'
+                              : 'bg-zinc-800 text-zinc-500 border-zinc-700 hover:border-zinc-600 hover:text-zinc-400'
+                          }`}
+                        >{label}</button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Task description */}
+                  <div className="flex flex-col gap-1.5">
+                    <label htmlFor="task-plan" className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wider">Task / Plan</label>
+                    <textarea
+                      id="task-plan"
+                      value={plan}
+                      onChange={e => setPlan(e.target.value)}
+                      rows={3}
+                      placeholder="Describe what you want to build, fix, or improve… e.g. 'Add dark mode toggle to the settings page'"
+                      className="w-full bg-[#121214] border border-[#27272a] rounded-lg px-3 py-2 text-xs text-zinc-300 placeholder:text-zinc-600 resize-none focus:outline-none focus:border-orange-500/40 focus:ring-1 focus:ring-orange-500/20 transition-colors"
+                    />
+                  </div>
+
+                  {/* Suggested Skills — only shown when plan has content */}
+                  {suggestedSkills.length > 0 && (
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wider">Auto-Selected Skills</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {suggestedSkills.map(({ skill, reason }) => (
+                          <span
+                            key={skill}
+                            title={`Selected for: ${reason}`}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-[10px] font-semibold"
+                          >
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                      <p className="text-[9px] text-zinc-600 leading-relaxed">
+                        These skills will be auto-injected into your agent prompts. The lead agent selects the final set at runtime.
+                      </p>
+                    </div>
+                  )}
+
                   <p className="text-[10px] text-zinc-600 leading-relaxed">
                     Opens Claude Code in PowerShell. Tell Claude your task and it spawns teammates inline. Use Shift+Down to cycle between them. Right-click and scroll work normally.
+                    {wslStatus?.tmuxInstalled && wslStatus?.claudeInWsl && (
+                      <> In split-pane mode: <strong className="text-zinc-400">right-click</strong> pastes from clipboard, <strong className="text-zinc-400">scroll</strong> works normally. To reference a file: in Explorer, <strong className="text-zinc-400">Shift+Right-click → Copy as path</strong>, then press <strong className="text-zinc-400">F5</strong> — the path is auto-converted to WSL format and pasted as an <strong className="text-zinc-400">@reference</strong>.</>
+
+                    )}
                   </p>
 
                   {/* Launch mode indicator */}
@@ -515,7 +621,8 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
                     disabled={!projectPath}
                     className="w-full py-2.5 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/30 hover:border-orange-500/50 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-orange-500/10"
                   >
-                    <Play size={15} /> Launch Agent Team ({agentCount === 'auto' ? 'Auto' : agentCount} agents)
+                    <Play size={15} />
+                    {plan.trim() ? 'Launch Agent Team' : `Launch Agent Team (${agentCount === 'auto' ? 'Auto' : agentCount} agents)`}
                   </button>
                 </div>
               )}

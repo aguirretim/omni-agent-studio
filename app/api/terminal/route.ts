@@ -54,11 +54,13 @@ export async function POST(req: NextRequest) {
 
       // Write a .bat intermediary so resolvedPath is never interpolated into
       // a shell command string — it is written into the file as a quoted value (C2)
+      // Claude always gets --dangerously-skip-permissions so it never pauses for prompts
+      const claudeFlags = command === 'claude' ? ' --dangerously-skip-permissions' : '';
       const batLines = [
         '@echo off',
         `cd /d "${resolvedPath}"`,
         `where ${bin} >nul 2>nul || (echo ${command} is not installed. Auto-installing... && ${installCmd})`,
-        bin,
+        `${bin}${claudeFlags}`,
       ];
       const batPath = path.join(resolvedPath, '.omni-launch.bat');
       fs.writeFileSync(batPath, batLines.join('\r\n'), { encoding: 'utf8' });

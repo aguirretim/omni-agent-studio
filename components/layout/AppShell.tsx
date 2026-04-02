@@ -3,7 +3,7 @@
 import { Suspense, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Bot, Home, FileText, Terminal, FolderGit2, HelpCircle } from 'lucide-react';
+import { Bot, Home, FileText, Terminal, FolderGit2, HelpCircle, RefreshCw } from 'lucide-react';
 import { WorkspaceProvider, useWorkspace } from '@/components/layout/WorkspaceProvider';
 import StatusToast from '@/components/ui/StatusToast';
 import HowToUse from '@/components/layout/HowToUse';
@@ -13,6 +13,7 @@ const navItems = [
   { label: 'Shared Context', icon: FileText, route: '/context' },
   { label: 'AI Tools', icon: Terminal, route: '/tools' },
   { label: 'Agent Teams', icon: Bot, route: '/agents' },
+  { label: 'Ralph', icon: RefreshCw, route: '/ralph' },
   { label: 'Sessions', icon: FolderGit2, route: '/sessions' },
 ];
 

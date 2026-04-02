@@ -22,6 +22,41 @@ From this file, extract and internalize before proceeding:
 
 If no context file exists, note the absence and proceed without it.
 
+## Phase 0.5: Skill Auto-Selection
+
+Before planning, analyze the task description and select 3–5 skills that best match it. Write your selection to AGENT_TASKS.md under `## Selected Skills`.
+
+**Skill taxonomy — match task keywords to skills:**
+
+| Task involves... | Use these skills |
+|---|---|
+| build / implement / create / add / feature | `/test-gen` (verify), `/review-pr` (before commit), `/commit` (final) |
+| bug / fix / error / broken / failing / crash | `/debug`, `/smart-fix`, `/test-gen` (verify fix) |
+| review / PR / pull request / merge | `/review-pr`, `/code-reviewer` |
+| refactor / clean / optimize / restructure | `/refactor-clean`, `/tech-debt`, `/review-pr` |
+| test / testing / spec / coverage / jest / vitest | `/test-gen`, `/debug` |
+| UI / UX / design / component / frontend / layout | `/ux-heuristic-review`, `/design-critique` |
+| accessibility / a11y / WCAG / ARIA | `/wcag-audit` |
+| security / vulnerability / auth / XSS / CSRF | `/security-hardening` |
+| explain / document / docs / README | `/explain`, `/doc-generate` |
+| PRD / requirements / feature plan / user story | `/create-prd`, `/convert-prd` |
+| autonomous / loop / iterate / automate / Ralph | `/ralph`, `/create-prd` |
+| research / literature / survey | `/literature-review`, `/research-synthesis` |
+| commit / save / checkpoint | `/commit`, `/checkpoint` |
+
+**Always include for any code-change task:**
+- `/review-pr` — run after the last implementation phase, before committing
+- `/commit` — final step; use the `/commit` skill to write the commit message
+
+**How to apply:**
+1. Output a `## Selected Skills` block in AGENT_TASKS.md listing each skill and why it was chosen
+2. Include a `USE THESE SKILLS:` block in every spawned agent's prompt:
+   ```
+   USE THESE SKILLS (inject at the right phase):
+   - /skill-name: [when to use it for this specific task]
+   ```
+3. At the end of every agent team run, the integration/final agent MUST run `/review-pr` then `/commit`
+
 ## Step 1: Analyze & Plan
 
 Before spawning any agents:
@@ -115,6 +150,16 @@ the main pane.
 - Production-quality output from the start
 - When uncertain, ask the lead (pane 0) before proceeding
 - **Research gate**: If any step depends on a factual claim, library version, API compatibility, or real-world data — run `/fact-check [claim]` as a sub-step before implementing. Paste the verified findings into AGENT_TASKS.md so all agents share the same ground truth.
+
+**Skill Toolkit** (19 available — auto-selected in Phase 0.5):
+| Category | Skills |
+|---|---|
+| Build | `/build-with-agent-team`, `/build-hybrid-team`, `/build-smart-delegate` |
+| Quality | `/test-gen`, `/review-pr`, `/debug`, `/smart-fix`, `/refactor-clean`, `/tech-debt` |
+| Dev workflow | `/commit`, `/checkpoint`, `/explain`, `/doc-generate` |
+| UI/UX | `/ux-heuristic-review`, `/design-critique`, `/wcag-audit` |
+| Research | `/literature-review`, `/research-synthesis`, `/fact-check` |
+| Autonomous | `/ralph`, `/create-prd`, `/convert-prd` |
 
 ## Context Update (MANDATORY — run after every use)
 

@@ -1,14 +1,21 @@
 # Agent Team Tasks
 Status: IN PROGRESS
-Date: 2026-03-25
+Date: 2026-04-01
 
 ## Goal
-1. Native folder picker: replace FolderBrowser modal with native Windows folder dialog
-2. Richer recents: show folder name + parent path in recents dropdown
+Add terminal type selector to the Agent Teams Launch tab so users can choose which terminal to use instead of relying on auto-detection.
 
-## Task List
-### Phase 1 — New API route
-- [ ] Create app/api/folder-dialog/route.ts (PowerShell FolderBrowserDialog)
+## Selected Skills
+- /commit — final step after implementation
+- /review-pr — quality gate before commit
 
-### Phase 2 — UI update
-- [ ] Update WorkspaceSelector: native picker + richer recents display
+## Changes Required
+
+### 1. app/api/agent-teams/route.ts
+- destructure terminalType from body
+- add terminalType override in launch-terminal handler
+
+### 2. components/features/AgentTeams.tsx
+- Add terminalType state
+- Add terminal selector UI in Launch tab
+- Pass terminalType in handleLaunch fetch body

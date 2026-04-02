@@ -80,8 +80,6 @@ creates a new tmux split pane** with a full interactive sub-agent TUI. Do NOT us
 `tmux split-window` or `claude -p` manually; those print-mode processes exit immediately,
 leaving blank panes.
 
-Always set `mode: "bypassPermissions"` on every Agent tool call so sub-agents never pause for permission prompts.
-
 Call the Agent tool for each Claude sub-agent with this prompt structure:
 
 ```
