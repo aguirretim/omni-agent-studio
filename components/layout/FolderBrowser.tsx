@@ -58,6 +58,7 @@ export default function FolderBrowser({ isOpen, onClose, onSelect, initialPath }
   const [homeDir, setHomeDir] = useState('');
   const [validQuickAccess, setValidQuickAccess] = useState<QuickAccess[]>([]);
   const [history, setHistory] = useState<string[]>([]);
+  const [selectedPath, setSelectedPath] = useState<string | null>(null);
 
   // New folder state
   const [creatingFolder, setCreatingFolder] = useState(false);
@@ -79,6 +80,7 @@ export default function FolderBrowser({ isOpen, onClose, onSelect, initialPath }
     setError(null);
     setCreatingFolder(false);
     setRenamingPath(null);
+    setSelectedPath(null);
     try {
       const res = await fetch('/api/fs', {
         method: 'POST',
@@ -303,11 +305,22 @@ export default function FolderBrowser({ isOpen, onClose, onSelect, initialPath }
                 ) : (
                   <div className="py-1">
                     {/* Existing folders */}
-                    {directories.map(dir => (
-                      <div key={dir.path} className="group flex items-center gap-2.5 px-3 py-1.5 hover:bg-[#2c2c2e] transition-colors">
+                    {directories.map(dir => {
+                      const isSelected = selectedPath === dir.path;
+                      return (
+                      <div
+                        key={dir.path}
+                        className={`group flex items-center gap-2.5 px-3 py-1.5 transition-colors cursor-pointer select-none border-l-2 ${
+                          isSelected
+                            ? 'bg-blue-600/20 border-blue-500'
+                            : 'hover:bg-[#2c2c2e] border-transparent'
+                        }`}
+                        onClick={() => setSelectedPath(dir.path)}
+                        onDoubleClick={() => fetchDirectory(dir.path)}
+                      >
                         {renamingPath === dir.path ? (
                           /* Rename inline input */
-                          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 flex-1 min-w-0" onClick={e => e.stopPropagation()}>
                             <Folder size={15} className="text-amber-400 shrink-0" />
                             <input
                               ref={renameInputRef}
@@ -322,17 +335,13 @@ export default function FolderBrowser({ isOpen, onClose, onSelect, initialPath }
                           </div>
                         ) : (
                           <>
-                            <button
-                              onDoubleClick={() => fetchDirectory(dir.path)}
-                              onKeyDown={e => e.key === 'Enter' && fetchDirectory(dir.path)}
-                              className="flex items-center gap-2.5 flex-1 min-w-0 text-left focus:outline-none"
-                            >
-                              <Folder size={15} className="text-amber-400/80 shrink-0 group-hover:text-amber-400" />
-                              <span className="text-[13px] text-zinc-300 group-hover:text-zinc-100 truncate">{dir.name}</span>
-                            </button>
+                            <Folder size={15} className={`shrink-0 transition-colors ${isSelected ? 'text-amber-400' : 'text-amber-400/80 group-hover:text-amber-400'}`} />
+                            <span className={`text-[13px] truncate flex-1 min-w-0 transition-colors ${isSelected ? 'text-zinc-100 font-medium' : 'text-zinc-300 group-hover:text-zinc-100'}`}>
+                              {dir.name}
+                            </span>
                             {/* Rename button — visible on hover */}
                             <button
-                              onClick={() => startRenaming(dir)}
+                              onClick={e => { e.stopPropagation(); startRenaming(dir); }}
                               aria-label={`Rename ${dir.name}`}
                               className="opacity-0 group-hover:opacity-100 p-1 rounded text-zinc-500 hover:text-zinc-200 hover:bg-zinc-700/60 transition-all shrink-0"
                             >
@@ -341,7 +350,8 @@ export default function FolderBrowser({ isOpen, onClose, onSelect, initialPath }
                           </>
                         )}
                       </div>
-                    ))}
+                      );
+                    })}
 
                     {/* New folder inline row */}
                     {creatingFolder && (
@@ -372,13 +382,13 @@ export default function FolderBrowser({ isOpen, onClose, onSelect, initialPath }
             <div className="folder-browser-footer flex items-center gap-2 px-3 py-2.5 bg-[#2c2c2e] border-t border-[#3a3a3c] shrink-0">
               <div className="flex items-center gap-1.5 flex-1 min-w-0 bg-[#1c1c1e] border border-[#3a3a3c] rounded px-2 py-1">
                 <FolderOpen size={12} className="text-amber-400/70 shrink-0" />
-                <span className="text-[11px] font-mono text-zinc-400 truncate">{currentPath || '—'}</span>
+                <span className="text-[11px] font-mono text-zinc-400 truncate">{selectedPath || currentPath || '—'}</span>
               </div>
               <button onClick={onClose} className="px-3 py-1.5 text-[12px] font-medium text-zinc-300 bg-[#3a3a3c] hover:bg-[#48484a] rounded transition-colors shrink-0">
                 Cancel
               </button>
               <button
-                onClick={() => { onSelect(currentPath); onClose(); }}
+                onClick={() => { onSelect(selectedPath || currentPath); onClose(); }}
                 disabled={isLoading || !!error || !currentPath}
                 className="px-3 py-1.5 text-[12px] font-medium text-white bg-blue-600 hover:bg-blue-500 disabled:bg-zinc-700 disabled:text-zinc-500 rounded transition-colors shrink-0"
               >
