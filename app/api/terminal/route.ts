@@ -8,6 +8,9 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { command, projectPath } = body;
+    // 'cmd' or 'powershell' — defaults to 'cmd'
+    const terminalType: 'cmd' | 'powershell' =
+      body.terminalType === 'powershell' ? 'powershell' : 'cmd';
 
     // CSRF check (S-H3)
     const origin = req.headers.get('origin');
@@ -54,24 +57,64 @@ export async function POST(req: NextRequest) {
       const installCmd = installCommands[command];
       const bin = binaryName[command] || command;
 
-      // Write a .bat intermediary so resolvedPath is never interpolated into
-      // a shell command string — it is written into the file as a quoted value (C2)
+      // Resolve system paths so we never rely on PATH inside spawn
+      const sysRoot = process.env.SystemRoot || 'C:\\Windows';
+      const conhostExe = path.join(sysRoot, 'System32', 'conhost.exe');
+      const cmdExe     = path.join(sysRoot, 'System32', 'cmd.exe');
+      const psExe      = path.join(sysRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
+
       // Claude always gets --dangerously-skip-permissions so it never pauses for prompts
       const claudeFlags = command === 'claude' ? ' --dangerously-skip-permissions' : '';
-      const batLines = [
-        '@echo off',
-        `cd /d "${resolvedPath}"`,
-        `where ${bin} >nul 2>nul || (echo ${command} is not installed. Auto-installing... && ${installCmd})`,
-        `${bin}${claudeFlags}`,
-      ];
-      const batPath = path.join(resolvedPath, '.omni-launch.bat');
-      fs.writeFileSync(batPath, batLines.join('\r\n'), { encoding: 'utf8' });
 
-      // Launch via spawn with no shell — batPath is never shell-interpolated
-      const child = spawn('cmd.exe', ['/c', 'start', `OmniAgent - ${command}`, 'cmd.exe', '/K', batPath], { shell: false });
+      let child;
+
+      if (terminalType === 'powershell') {
+        // Write a .ps1 launcher — resolvedPath written as a literal string value (no shell interpolation)
+        const psLines = [
+          `Set-Location "${resolvedPath}"`,
+          `if (-not (Get-Command '${bin}' -ErrorAction SilentlyContinue)) {`,
+          `  Write-Host "${command} is not installed. Auto-installing..."`,
+          `  ${installCmd}`,
+          `}`,
+          `& '${bin}'${claudeFlags}`,
+        ];
+        const ps1Path = path.join(resolvedPath, '.omni-launch.ps1');
+        fs.writeFileSync(ps1Path, psLines.join('\r\n'), { encoding: 'utf8' });
+
+        // Use conhost.exe -- powershell so the window uses legacy console host.
+        // Legacy conhost handles WM_DROPFILES natively: dragging a file onto the
+        // window inserts its path directly without requiring Ctrl+V.
+        child = spawn(
+          conhostExe,
+          ['--', psExe, '-NoExit', '-ExecutionPolicy', 'Bypass', '-File', ps1Path],
+          { shell: false, detached: true, stdio: 'ignore' },
+        );
+      } else {
+        // Write a .bat intermediary so resolvedPath is never interpolated into
+        // a shell command string — it is written into the file as a quoted value (C2)
+        const batLines = [
+          '@echo off',
+          `cd /d "${resolvedPath}"`,
+          `where ${bin} >nul 2>nul || (echo ${command} is not installed. Auto-installing... && ${installCmd})`,
+          `${bin}${claudeFlags}`,
+        ];
+        const batPath = path.join(resolvedPath, '.omni-launch.bat');
+        fs.writeFileSync(batPath, batLines.join('\r\n'), { encoding: 'utf8' });
+
+        // Use conhost.exe -- cmd so the window uses legacy console host.
+        // Legacy conhost handles WM_DROPFILES natively: dragging a file onto the
+        // window inserts its path directly without requiring Ctrl+V.
+        child = spawn(
+          conhostExe,
+          ['--', cmdExe, '/K', batPath],
+          { shell: false, detached: true, stdio: 'ignore' },
+        );
+      }
+
       child.on('error', (err) => {
         console.error(`Error spawning terminal: ${err.message}`);
       });
+      child.unref();
 
       return NextResponse.json({ success: true, message: `Spawned ${command} terminal.` });
     } else {

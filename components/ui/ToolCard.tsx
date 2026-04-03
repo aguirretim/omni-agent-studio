@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Terminal, ArrowRight } from 'lucide-react';
 import { useWorkspace } from '@/components/layout/WorkspaceProvider';
 
@@ -36,6 +37,7 @@ export default function ToolCard({
   billingUrl,
 }: ToolCardProps) {
   const { projectPath, setSyncStatus } = useWorkspace();
+  const [terminalType, setTerminalType] = useState<'cmd' | 'powershell'>('cmd');
 
   const spawnTerminal = async () => {
     if (!projectPath) {
@@ -47,7 +49,7 @@ export default function ToolCard({
       await fetch('/api/terminal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ command, projectPath }),
+        body: JSON.stringify({ command, projectPath, terminalType }),
       });
       setSyncStatus(`${command} online`);
     } catch {
@@ -79,6 +81,25 @@ export default function ToolCard({
           <div className="w-7 h-7 shrink-0 rounded-full bg-[var(--c-surface)] flex items-center justify-center border border-[var(--c-border)] group-hover:bg-[var(--c-border)] group-hover:border-zinc-600 transition-all">
             <Terminal size={14} className="text-zinc-500 group-hover:text-zinc-200 transition-colors" />
           </div>
+        </div>
+
+        {/* Terminal type picker */}
+        <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+          <span className="text-[10px] text-zinc-600 shrink-0">Open in:</span>
+          {(['cmd', 'powershell'] as const).map(t => (
+            <button
+              key={t}
+              type="button"
+              onClick={e => { e.stopPropagation(); setTerminalType(t); }}
+              className={`px-2 py-0.5 rounded text-[10px] font-mono border transition-all ${
+                terminalType === t
+                  ? 'bg-zinc-700 border-zinc-500 text-zinc-200'
+                  : 'bg-transparent border-zinc-800 text-zinc-600 hover:border-zinc-600 hover:text-zinc-400'
+              }`}
+            >
+              {t === 'cmd' ? 'CMD' : 'PowerShell'}
+            </button>
+          ))}
         </div>
 
         {/* Detail text */}
