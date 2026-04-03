@@ -110,3 +110,30 @@ body {
 .premium-shadow {
   box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
+
+/* ── FolderBrowser light mode chrome overrides ── */
+/* The file list area stays dark (terminal feel); only chrome gets themed */
+[data-theme="light"] .folder-browser-dialog {
+  background-color: #f8f9fa;
+  border-color: #d4d4d8;
+}
+[data-theme="light"] .folder-browser-dialog .folder-browser-titlebar {
+  background-color: #f1f5f9;
+  border-color: #e2e8f0;
+}
+[data-theme="light"] .folder-browser-dialog .folder-browser-toolbar {
+  background-color: #ffffff;
+  border-color: #e2e8f0;
+}
+[data-theme="light"] .folder-browser-dialog .folder-browser-breadcrumb {
+  background-color: #f1f5f9;
+  border-color: #e2e8f0;
+}
+[data-theme="light"] .folder-browser-dialog .folder-browser-sidebar {
+  background-color: #f1f5f9;
+  border-color: #e2e8f0;
+}
+[data-theme="light"] .folder-browser-dialog .folder-browser-footer {
+  background-color: #f1f5f9;
+  border-color: #e2e8f0;
+}

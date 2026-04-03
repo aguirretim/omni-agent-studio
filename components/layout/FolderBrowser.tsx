@@ -225,12 +225,12 @@ export default function FolderBrowser({ isOpen, onClose, onSelect, initialPath }
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.97, y: 8 }}
             transition={{ duration: 0.12, ease: 'easeOut' }}
-            className="w-full max-w-[640px] bg-[#1c1c1e] border border-[#3a3a3c] rounded-lg shadow-2xl flex flex-col overflow-hidden"
+            className="folder-browser-dialog w-full max-w-[640px] bg-[#1c1c1e] border border-[#3a3a3c] rounded-lg shadow-2xl flex flex-col overflow-hidden"
             style={{ height: 420 }}
             onClick={e => e.stopPropagation()}
           >
             {/* Title bar */}
-            <div className="flex items-center justify-between px-4 py-2.5 bg-[#2c2c2e] border-b border-[#3a3a3c] shrink-0">
+            <div className="folder-browser-titlebar flex items-center justify-between px-4 py-2.5 bg-[#2c2c2e] border-b border-[#3a3a3c] shrink-0">
               <span id="folder-browser-title" className="text-[13px] font-semibold text-zinc-200 select-none">Browse For Folder</span>
               <button onClick={onClose} aria-label="Close" className="w-5 h-5 flex items-center justify-center rounded-full bg-[#ff5f57] hover:bg-[#ff3b30] transition-colors">
                 <X size={9} className="text-[#7a0000]" />
@@ -238,14 +238,14 @@ export default function FolderBrowser({ isOpen, onClose, onSelect, initialPath }
             </div>
 
             {/* Toolbar */}
-            <div className="flex items-center gap-1.5 px-2 py-1.5 bg-[#252527] border-b border-[#3a3a3c] shrink-0">
+            <div className="folder-browser-toolbar flex items-center gap-1.5 px-2 py-1.5 bg-[#252527] border-b border-[#3a3a3c] shrink-0">
               <button onClick={goBack} disabled={history.length === 0} aria-label="Go back"
                 className="p-1.5 rounded text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700/60 disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0">
                 <ArrowLeft size={14} />
               </button>
 
               {/* Breadcrumb */}
-              <div className="flex-1 flex items-center gap-0.5 bg-[#1c1c1e] border border-[#3a3a3c] rounded px-2 py-1 overflow-x-auto no-scrollbar min-w-0">
+              <div className="folder-browser-breadcrumb flex-1 flex items-center gap-0.5 bg-[#1c1c1e] border border-[#3a3a3c] rounded px-2 py-1 overflow-x-auto no-scrollbar min-w-0">
                 {breadcrumbs.map((crumb, i) => (
                   <span key={crumb.path} className="flex items-center gap-0.5 shrink-0">
                     {i > 0 && <span className="text-zinc-600 text-[11px] mx-0.5 select-none">›</span>}
@@ -271,7 +271,7 @@ export default function FolderBrowser({ isOpen, onClose, onSelect, initialPath }
             {/* Body */}
             <div className="flex flex-1 min-h-0">
               {/* Sidebar */}
-              <div className="w-36 shrink-0 bg-[#1c1c1e] border-r border-[#3a3a3c] py-2 flex flex-col gap-0.5 overflow-y-auto">
+              <div className="folder-browser-sidebar w-36 shrink-0 bg-[#1c1c1e] border-r border-[#3a3a3c] py-2 flex flex-col gap-0.5 overflow-y-auto">
                 <div className="px-3 pb-1 text-[10px] font-semibold text-zinc-500 uppercase tracking-wider select-none">Quick Access</div>
                 {validQuickAccess.map(item => (
                   <button key={item.path} onClick={() => fetchDirectory(item.path)}
@@ -369,7 +369,7 @@ export default function FolderBrowser({ isOpen, onClose, onSelect, initialPath }
             </div>
 
             {/* Footer */}
-            <div className="flex items-center gap-2 px-3 py-2.5 bg-[#2c2c2e] border-t border-[#3a3a3c] shrink-0">
+            <div className="folder-browser-footer flex items-center gap-2 px-3 py-2.5 bg-[#2c2c2e] border-t border-[#3a3a3c] shrink-0">
               <div className="flex items-center gap-1.5 flex-1 min-w-0 bg-[#1c1c1e] border border-[#3a3a3c] rounded px-2 py-1">
                 <FolderOpen size={12} className="text-amber-400/70 shrink-0" />
                 <span className="text-[11px] font-mono text-zinc-400 truncate">{currentPath || '—'}</span>
