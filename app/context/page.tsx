@@ -275,13 +275,14 @@ export default function ContextPage() {
       <div className="p-6 flex flex-col gap-6 max-w-[1200px] mx-auto w-full">
         {!bannerDismissed && (
           <div className="border border-blue-500/20 bg-blue-500/5 rounded-lg p-4 flex items-start gap-3">
-            <div className="flex-1 text-[13px] text-zinc-400 leading-relaxed">
+            <div id="context-banner-text" className="flex-1 text-[13px] text-zinc-400 leading-relaxed">
               This is your AI Instructions file. Write what your project is about, what rules the AI should follow, and what goals you want to achieve. Every AI tool you launch will read this file automatically — so anything you write here applies to all of them.
             </div>
             <button
               onClick={dismissBanner}
               className="shrink-0 p-1 text-zinc-600 hover:text-zinc-400 hover:bg-zinc-800 rounded transition-colors"
               aria-label="Dismiss banner"
+              aria-describedby="context-banner-text"
               title="Dismiss"
             >
               <X size={14} />

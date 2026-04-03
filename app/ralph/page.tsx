@@ -71,21 +71,80 @@ function GoalsTab({ projectPath }: GoalsTabProps) {
 
   if (totalCount === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
-        <FileText size={32} className="text-zinc-600" />
-        <div>
-          <p className="text-sm font-medium text-zinc-300">No Active Goals found</p>
-          <p className="text-xs text-zinc-500 mt-1 max-w-sm">
-            Add goals to the <span className="font-mono text-zinc-400">## Active Goals</span> section in your Shared Context, then refresh.
-          </p>
+      <div className="flex flex-col gap-5 py-4">
+        {/* Header */}
+        <div className="flex flex-col items-center gap-3 text-center pb-2">
+          <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+            <RefreshCw size={18} className="text-emerald-400" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-zinc-200">Ready to run your first autonomous loop!</p>
+            <p className="text-xs text-zinc-500 mt-1 max-w-sm mx-auto leading-relaxed">
+              Ralph works through a list of goals automatically — implementing, committing, and marking each one done. Here is how to get started:
+            </p>
+          </div>
         </div>
-        <Link
-          href="/context"
-          className="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 rounded-lg text-xs font-semibold px-4 py-2 transition-colors"
-        >
-          <ChevronRight size={12} />
-          Open Shared Context
-        </Link>
+
+        {/* Steps */}
+        <div className="flex flex-col gap-2">
+          {[
+            {
+              n: '1',
+              title: 'Open your AI Instructions',
+              desc: 'Go to the Shared Context page and find (or add) the "Active Goals" section.',
+              action: (
+                <Link
+                  href="/context"
+                  className="shrink-0 flex items-center gap-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 rounded-md text-[11px] font-semibold px-3 py-1.5 transition-colors"
+                >
+                  <ChevronRight size={11} />
+                  Open
+                </Link>
+              ),
+            },
+            {
+              n: '2',
+              title: 'Add your goals using checkbox format',
+              desc: (
+                <>
+                  Under <span className="font-mono text-zinc-300 text-[10px]">## Active Goals</span>, add one line per goal:{' '}
+                  <span className="font-mono text-zinc-300 text-[10px]">- [ ] Add dark mode to settings page</span>
+                </>
+              ),
+              action: null,
+            },
+            {
+              n: '3',
+              title: 'Launch Claude Code and type /ralph',
+              desc: 'Go to AI Tools, launch Claude Code, then type /ralph and press Enter. Ralph will start working through your goals automatically.',
+              action: (
+                <Link
+                  href="/tools"
+                  className="shrink-0 flex items-center gap-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 rounded-md text-[11px] font-semibold px-3 py-1.5 transition-colors"
+                >
+                  <ChevronRight size={11} />
+                  AI Tools
+                </Link>
+              ),
+            },
+          ].map(({ n, title, desc, action }) => (
+            <div key={n} className="flex items-start gap-3 bg-[#18181b] border border-[#27272a] rounded-lg px-4 py-3">
+              <div className="shrink-0 w-5 h-5 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[10px] font-bold text-zinc-400 mt-0.5">
+                {n}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-zinc-200 mb-0.5">{title}</p>
+                <p className="text-[11px] text-zinc-500 leading-snug">{desc}</p>
+              </div>
+              {action}
+            </div>
+          ))}
+        </div>
+
+        {/* Refresh note */}
+        <p className="text-[10px] text-zinc-700 text-center">
+          After adding goals, click the Refresh button (top right) to see them here.
+        </p>
       </div>
     );
   }

@@ -124,13 +124,14 @@ export default function ToolsPage() {
         {/* Beginner tip */}
         {!tipDismissed && (
           <div className="border border-blue-500/20 bg-blue-500/5 rounded-lg p-4 flex items-start gap-3">
-            <div className="flex-1 text-[13px] text-zinc-400 leading-relaxed">
-              New here? Start with <span className="text-zinc-200 font-medium">Claude Code</span> — it's the most capable and works great for any coding task. Just click the card, and a terminal window will open ready to go.
+            <div id="tools-tip-text" className="flex-1 text-[13px] text-zinc-400 leading-relaxed">
+              New here? Start with <span className="text-zinc-200 font-medium">Claude Code</span> — it&apos;s the most capable and works great for any coding task. Just click the card, and a terminal window will open ready to go.
             </div>
             <button
               onClick={dismissTip}
               className="shrink-0 p-1 text-zinc-600 hover:text-zinc-400 hover:bg-zinc-800 rounded transition-colors"
               aria-label="Dismiss tip"
+              aria-describedby="tools-tip-text"
               title="Dismiss"
             >
               <X size={14} />
