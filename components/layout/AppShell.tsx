@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Bot, Home, FileText, Terminal, FolderGit2, HelpCircle, RefreshCw, FolderOpen, Volume2, VolumeX } from 'lucide-react';
+import { Bot, Home, FileText, Terminal, FolderGit2, HelpCircle, RefreshCw, FolderOpen, Volume2, VolumeX, Sun, Moon } from 'lucide-react';
 import { isAudioEnabled, setAudioEnabled, getAudioVolume, setAudioVolume } from '@/components/ui/useAudioNotification';
 
 /** Returns { name, parent } split from a file path. */
@@ -37,11 +37,30 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
   // the real localStorage values — React sees different HTML and throws.
   const [audioOn, setAudioOn] = useState(true);
   const [audioVolume, setAudioVolumeState] = useState(40);
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
   useEffect(() => {
     setAudioOn(isAudioEnabled());
     setAudioVolumeState(getAudioVolume());
   }, []);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('omni-theme') as 'dark' | 'light' | null;
+    const initial = saved ?? 'dark';
+    setTheme(initial);
+    document.documentElement.setAttribute('data-theme', initial === 'light' ? 'light' : '');
+  }, []);
+
+  const toggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    localStorage.setItem('omni-theme', next);
+    if (next === 'light') {
+      document.documentElement.setAttribute('data-theme', 'light');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+  };
 
   const toggleAudio = () => {
     const next = !audioOn;
@@ -74,9 +93,9 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
   return (
     <>
       {/* Sidebar */}
-      <aside className="w-[260px] flex-shrink-0 flex flex-col border-r border-[#27272a] bg-[#09090b]">
+      <aside className="w-[260px] flex-shrink-0 flex flex-col border-r border-[var(--c-border)] bg-[var(--c-bg)]">
         {/* Logo */}
-        <div className="h-14 flex items-center px-4 border-b border-[#27272a] mb-2">
+        <div className="h-14 flex items-center px-4 border-b border-[var(--c-border)] mb-2">
           <h1 className="text-sm font-semibold flex items-center gap-2">
             <Bot size={16} className="text-zinc-400" />
             OmniAgent Studio
@@ -122,16 +141,16 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t border-[#27272a] flex items-center justify-between">
+        <div className="p-4 border-t border-[var(--c-border)] flex items-center justify-between">
           <span className="text-[11px] font-medium text-zinc-500">v1.1.0</span>
           <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
         </div>
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#09090b]">
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[var(--c-bg)]">
         {/* Breadcrumb header */}
-        <header className="h-14 border-b border-[#27272a] flex items-center justify-between px-6 bg-[#09090b] sticky top-0 z-20">
+        <header className="h-14 border-b border-[var(--c-border)] flex items-center justify-between px-6 bg-[var(--c-bg)] sticky top-0 z-20">
           <div className="flex items-center gap-2 text-sm text-zinc-400 min-w-0">
             <span className="shrink-0">Workspaces</span>
             <span className="text-zinc-600 shrink-0">/</span>
@@ -155,6 +174,15 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
 
           <div className="flex items-center gap-3">
             <StatusToast />
+            <button
+              onClick={toggleTheme}
+              className="p-1.5 text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 rounded-md transition-colors"
+              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              aria-pressed={theme === 'light'}
+            >
+              {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
+            </button>
             <div className="flex items-center gap-1.5">
               {audioOn && (
                 <input

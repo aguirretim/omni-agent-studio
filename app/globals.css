@@ -9,16 +9,69 @@
     --border: #27272a; /* zinc-800 */
     --accent: #18181b; /* zinc-900 */
     --accent-foreground: #fafafa;
-    
+
     /* Brand Colors - very subtle */
     --brand-claude: #d97757;
     --brand-gemini: #4285f4;
     --brand-opencode: #10b981;
+
+    /* Theme surface tokens (dark defaults) */
+    --c-bg: #09090b;
+    --c-surface: #18181b;
+    --c-inset: #121214;
+    --c-border: #27272a;
+    --c-deep: #0f0f11;
+    --c-stripe: #0c0c0e;
+    --c-hover: #161618;
   }
 }
 
+[data-theme="light"] {
+  --c-bg: #ffffff;
+  --c-surface: #f8f9fa;
+  --c-inset: #f1f5f9;
+  --c-border: #e2e8f0;
+  --c-deep: #edf2f7;
+  --c-stripe: #f8fafc;
+  --c-hover: #f1f5f9;
+}
+
+/* ── Light mode global overrides ── */
+/* Text color remapping (zinc-100/200/300 are nearly white, invisible on light bg) */
+[data-theme="light"] .text-zinc-100 { color: #18181b; }
+[data-theme="light"] .text-zinc-200 { color: #27272a; }
+[data-theme="light"] .text-zinc-300 { color: #3f3f46; }
+
+/* Hover text remapping */
+[data-theme="light"] .hover\:text-zinc-200:hover { color: #18181b; }
+[data-theme="light"] .hover\:text-zinc-300:hover { color: #27272a; }
+
+/* Zinc bg remapping */
+[data-theme="light"] .bg-zinc-800 { background-color: #f1f5f9; }
+[data-theme="light"] .bg-zinc-900 { background-color: #f8f9fa; }
+[data-theme="light"] .bg-zinc-950 { background-color: #ffffff; }
+[data-theme="light"] .bg-zinc-800\/50 { background-color: rgba(226, 232, 240, 0.5); }
+[data-theme="light"] .bg-zinc-800\/60 { background-color: rgba(226, 232, 240, 0.6); }
+
+/* Hover bg remapping */
+[data-theme="light"] .hover\:bg-zinc-700:hover { background-color: #e2e8f0; }
+[data-theme="light"] .hover\:bg-zinc-800:hover { background-color: #f1f5f9; }
+
+/* Border remapping */
+[data-theme="light"] .border-zinc-700 { border-color: #d4d4d8; }
+[data-theme="light"] .border-zinc-800 { border-color: #e4e4e7; }
+
+/* Scrollbar for light mode */
+[data-theme="light"] ::-webkit-scrollbar-thumb { background: #d4d4d8; }
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover { background: #a1a1aa; }
+
+/* Body gradient: remove in light mode */
+[data-theme="light"] body {
+  background-image: none;
+}
+
 body {
-  background-color: var(--background);
+  background-color: var(--c-bg);
   color: var(--foreground);
   font-family: 'Inter', system-ui, sans-serif;
   overflow: hidden; /* App-like feel */

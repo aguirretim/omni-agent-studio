@@ -69,11 +69,11 @@ export default function HowToUse({ isOpen, onClose }: HowToUseProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="w-full max-w-3xl bg-[#09090b] border border-[#27272a] rounded-xl shadow-2xl flex flex-col max-h-[80dvh] overflow-hidden"
+            className="w-full max-w-3xl bg-[var(--c-bg)] border border-[var(--c-border)] rounded-xl shadow-2xl flex flex-col max-h-[80dvh] overflow-hidden"
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="h-14 border-b border-[#27272a] bg-[#121214] flex items-center justify-between px-6 shrink-0">
+            <div className="h-14 border-b border-[var(--c-border)] bg-[var(--c-inset)] flex items-center justify-between px-6 shrink-0">
               <h2 id="how-to-use-title" className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
                 <Bot size={16} className="text-emerald-400" />
                 How to use OmniAgent Studio
@@ -88,7 +88,7 @@ export default function HowToUse({ isOpen, onClose }: HowToUseProps) {
             </div>
 
             {/* Content Area */}
-            <div className="flex-1 overflow-y-auto p-8 bg-[#09090b] space-y-8">
+            <div className="flex-1 overflow-y-auto p-8 bg-[var(--c-bg)] space-y-8">
 
               <section>
                 <h3 className="text-lg font-medium text-zinc-100 mb-3 border-b border-zinc-800 pb-2">What is OmniAgent Studio?</h3>
@@ -99,7 +99,7 @@ export default function HowToUse({ isOpen, onClose }: HowToUseProps) {
 
               <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-                <div className="space-y-3 p-4 border border-[#27272a] bg-[#121214] rounded-lg">
+                <div className="space-y-3 p-4 border border-[var(--c-border)] bg-[var(--c-inset)] rounded-lg">
                   <div className="flex items-center gap-2 text-sm font-semibold text-zinc-200">
                     <FolderGit2 size={16} className="text-amber-400" />
                     1. Connect Workspace
@@ -109,7 +109,7 @@ export default function HowToUse({ isOpen, onClose }: HowToUseProps) {
                   </p>
                 </div>
 
-                <div className="space-y-3 p-4 border border-[#27272a] bg-[#121214] rounded-lg">
+                <div className="space-y-3 p-4 border border-[var(--c-border)] bg-[var(--c-inset)] rounded-lg">
                   <div className="flex items-center gap-2 text-sm font-semibold text-zinc-200">
                     <Bot size={16} className="text-emerald-400" />
                     2. Write Your AI Instructions
@@ -122,7 +122,7 @@ export default function HowToUse({ isOpen, onClose }: HowToUseProps) {
                   </p>
                 </div>
 
-                <div className="space-y-3 p-4 border border-[#27272a] bg-[#121214] rounded-lg">
+                <div className="space-y-3 p-4 border border-[var(--c-border)] bg-[var(--c-inset)] rounded-lg">
                   <div className="flex items-center gap-2 text-sm font-semibold text-zinc-200">
                     <Terminal size={16} className="text-blue-400" />
                     3. Launch AI Tools
@@ -132,7 +132,7 @@ export default function HowToUse({ isOpen, onClose }: HowToUseProps) {
                   </p>
                 </div>
 
-                <div className="space-y-3 p-4 border border-[#27272a] bg-[#121214] rounded-lg">
+                <div className="space-y-3 p-4 border border-[var(--c-border)] bg-[var(--c-inset)] rounded-lg">
                   <div className="flex items-center gap-2 text-sm font-semibold text-zinc-200">
                     <Users size={16} className="text-violet-400" />
                     4. Use Agent Teams
@@ -167,7 +167,7 @@ export default function HowToUse({ isOpen, onClose }: HowToUseProps) {
                 </div>
 
                 {/* Split-pane setup */}
-                <div className="p-4 border border-[#27272a] bg-[#121214] rounded-lg">
+                <div className="p-4 border border-[var(--c-border)] bg-[var(--c-inset)] rounded-lg">
                   <div className="flex items-center gap-2 text-sm font-semibold text-zinc-200 mb-2">
                     <Monitor size={14} className="text-zinc-400" />
                     Want split-pane view? Install WSL + tmux
@@ -180,7 +180,7 @@ export default function HowToUse({ isOpen, onClose }: HowToUseProps) {
 
             </div>
 
-            <div className="h-16 border-t border-[#27272a] bg-[#121214] flex items-center justify-end px-6 shrink-0">
+            <div className="h-16 border-t border-[var(--c-border)] bg-[var(--c-inset)] flex items-center justify-end px-6 shrink-0">
                <button
                   onClick={onClose}
                   className="px-6 py-2 bg-zinc-200 hover:bg-white text-zinc-900 rounded-lg text-xs font-semibold shadow-sm transition-colors flex items-center gap-2"

@@ -61,13 +61,13 @@ export default function ToolCard({
     <div className="flex flex-col gap-2">
       <button
         onClick={spawnTerminal}
-        className={`group relative flex flex-col gap-3 p-4 rounded-xl bg-[#121214] hover:bg-[#1a1a1d] transition-all border border-[#27272a] ${hoverBorder} shadow-sm text-left`}
+        className={`group relative flex flex-col gap-3 p-4 rounded-xl bg-[var(--c-inset)] hover:bg-[#1a1a1d] transition-all border border-[var(--c-border)] ${hoverBorder} shadow-sm text-left`}
       >
         {/* Header row */}
         <div className="flex items-center justify-between w-full">
           <div className="flex items-center gap-3">
             <div
-              className={`w-9 h-9 shrink-0 rounded-lg bg-[#18181b] border border-zinc-700/50 flex items-center justify-center text-[13px] font-bold shadow-inner ${color}`}
+              className={`w-9 h-9 shrink-0 rounded-lg bg-[var(--c-surface)] border border-zinc-700/50 flex items-center justify-center text-[13px] font-bold shadow-inner ${color}`}
             >
               {icon}
             </div>
@@ -76,7 +76,7 @@ export default function ToolCard({
               <div className="text-[11px] text-zinc-500 leading-snug mt-0.5">{description}</div>
             </div>
           </div>
-          <div className="w-7 h-7 shrink-0 rounded-full bg-[#18181b] flex items-center justify-center border border-[#27272a] group-hover:bg-[#27272a] group-hover:border-zinc-600 transition-all">
+          <div className="w-7 h-7 shrink-0 rounded-full bg-[var(--c-surface)] flex items-center justify-center border border-[var(--c-border)] group-hover:bg-[var(--c-border)] group-hover:border-zinc-600 transition-all">
             <Terminal size={14} className="text-zinc-500 group-hover:text-zinc-200 transition-colors" />
           </div>
         </div>
@@ -103,7 +103,7 @@ export default function ToolCard({
           target="_blank"
           rel="noopener noreferrer"
           aria-label={`Check usage for ${name} (opens in new tab)`}
-          className="w-full py-1.5 px-3 bg-zinc-800/20 hover:bg-zinc-800/60 border border-[#27272a] hover:border-zinc-600 rounded-lg text-[10px] text-zinc-400 hover:text-zinc-200 font-mono uppercase tracking-wider flex items-center justify-between transition-all group/link"
+          className="w-full py-1.5 px-3 bg-zinc-800/20 hover:bg-zinc-800/60 border border-[var(--c-border)] hover:border-zinc-600 rounded-lg text-[10px] text-zinc-400 hover:text-zinc-200 font-mono uppercase tracking-wider flex items-center justify-between transition-all group/link"
         >
           <span>Check usage ↗</span>
           <ArrowRight size={10} className="opacity-0 group-hover/link:opacity-100 transition-opacity" />

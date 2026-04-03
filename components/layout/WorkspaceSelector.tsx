@@ -87,7 +87,7 @@ const recentsRef = useRef<HTMLDivElement>(null);
           <input
             type="text"
             placeholder="Connect workspace (e.g., C:\Projects\MyApp)... Click folder icon to browse."
-            className="w-full bg-[#18181b] border border-[#27272a] rounded-xl py-3.5 pl-12 pr-[140px] text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 transition-all font-mono"
+            className="w-full bg-[var(--c-surface)] border border-[var(--c-border)] rounded-xl py-3.5 pl-12 pr-[140px] text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 transition-all font-mono"
             value={projectPath}
             onChange={(e) => setProjectPath(e.target.value)}
             onKeyDown={(e) => {
@@ -113,12 +113,12 @@ const recentsRef = useRef<HTMLDivElement>(null);
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ duration: 0.1 }}
-                    className="absolute right-0 top-full mt-2 w-80 bg-[#121214] border border-[#27272a] rounded-xl shadow-2xl overflow-hidden z-50 flex flex-col"
+                    className="absolute right-0 top-full mt-2 w-80 bg-[var(--c-inset)] border border-[var(--c-border)] rounded-xl shadow-2xl overflow-hidden z-50 flex flex-col"
                   >
-                    <div className="px-3 py-2 border-b border-[#27272a] bg-[#18181b] text-xs font-semibold text-zinc-400">
+                    <div className="px-3 py-2 border-b border-[var(--c-border)] bg-[var(--c-surface)] text-xs font-semibold text-zinc-400">
                       Recent Workspaces
                     </div>
-                    <div className="max-h-60 overflow-y-auto p-1 bg-[#09090b]">
+                    <div className="max-h-60 overflow-y-auto p-1 bg-[var(--c-bg)]">
                       {recentPaths.length === 0 ? (
                         <div className="p-4 text-center text-xs text-zinc-600">No recent paths found.</div>
                       ) : (
@@ -132,7 +132,7 @@ const recentsRef = useRef<HTMLDivElement>(null);
                                 handleConnect(p);
                                 setIsRecentsOpen(false);
                               }}
-                              className="w-full text-left px-2 py-2.5 rounded-lg hover:bg-[#18181b] flex items-start gap-3 transition-colors group"
+                              className="w-full text-left px-2 py-2.5 rounded-lg hover:bg-[var(--c-surface)] flex items-start gap-3 transition-colors group"
                             >
                               <FolderOpen size={14} className="text-zinc-500 group-hover:text-blue-400 shrink-0 mt-0.5" />
                               <span className="flex flex-col min-w-0">

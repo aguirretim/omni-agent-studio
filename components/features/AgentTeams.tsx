@@ -469,11 +469,11 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
   };
 
   return (
-    <div className="bg-[#18181b] border border-[#27272a] rounded-xl overflow-hidden shadow-sm">
+    <div className="bg-[var(--c-surface)] border border-[var(--c-border)] rounded-xl overflow-hidden shadow-sm">
 
       {/* ── Header ── */}
       <button
-        className="w-full h-12 border-b border-[#27272a] bg-[#121214] flex items-center justify-between px-4 hover:bg-[#161618] transition-colors"
+        className="w-full h-12 border-b border-[var(--c-border)] bg-[var(--c-inset)] flex items-center justify-between px-4 hover:bg-[var(--c-hover)] transition-colors"
         onClick={() => setIsExpanded(v => !v)}
         aria-expanded={isExpanded}
         aria-controls="agent-teams-content"
@@ -518,7 +518,7 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
               role="tablist"
               aria-label="Agent Teams sections"
               onKeyDown={handleTabKeyDown}
-              className="flex border-b border-[#27272a] bg-[#0f0f11]"
+              className="flex border-b border-[var(--c-border)] bg-[var(--c-deep)]"
             >
               {(['launch', 'setup', 'guide', 'preview'] as const).map(tab => (
                 <button
@@ -553,7 +553,7 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
               >Library</button>
             </div>
 
-            <div className="p-4 bg-[#09090b]">
+            <div className="p-4 bg-[var(--c-bg)]">
 
               {/* ══════════════════════════════════════════════
                   LAUNCH TAB
@@ -646,7 +646,7 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
                       }}
                       rows={3}
                       placeholder="Describe what you want to build, fix, or improve… e.g. 'Add dark mode toggle to the settings page'"
-                      className="w-full bg-[#121214] border border-[#27272a] rounded-lg px-3 py-2 text-xs text-zinc-300 placeholder:text-zinc-600 resize-none focus:outline-none focus:border-orange-500/40 focus:ring-1 focus:ring-orange-500/20 transition-colors"
+                      className="w-full bg-[var(--c-inset)] border border-[var(--c-border)] rounded-lg px-3 py-2 text-xs text-zinc-300 placeholder:text-zinc-600 resize-none focus:outline-none focus:border-orange-500/40 focus:ring-1 focus:ring-orange-500/20 transition-colors"
                     />
                   </div>
 
@@ -714,7 +714,7 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
                   </button>
 
                   {/* ── Multi-LLM via OpenClaude ── */}
-                  <div className="border-t border-[#27272a] pt-4 flex flex-col gap-3">
+                  <div className="border-t border-[var(--c-border)] pt-4 flex flex-col gap-3">
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wider">Other LLMs via OpenClaude</span>
                       <span className="text-[9px] text-zinc-700 font-mono">@gitlawb/openclaude</span>
@@ -768,7 +768,7 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
               {activeTab === 'setup' && (
                 <div role="tabpanel" id="panel-setup" aria-labelledby="tab-setup" tabIndex={0} className="flex flex-col gap-5">
 
-                  <div className="flex items-start gap-3 p-3 bg-[#121214] border border-[#27272a] rounded-lg">
+                  <div className="flex items-start gap-3 p-3 bg-[var(--c-inset)] border border-[var(--c-border)] rounded-lg">
                     <Monitor size={16} className="text-orange-400 shrink-0 mt-0.5" />
                     <p className="text-xs text-zinc-400 leading-relaxed">
                       Agent Teams launches Claude in <strong className="text-zinc-200">PowerShell</strong> by default. Teammates appear inline and you cycle with <strong className="text-zinc-200">Shift+Down</strong>.
@@ -901,7 +901,7 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
                         <p className="text-[11px] text-zinc-500 leading-relaxed">
                           Node.js must be available inside WSL so <code className="text-zinc-400">claude.exe</code> can launch correctly from a tmux pane. Run this in your Ubuntu terminal:
                         </p>
-                        <code className="block text-[10px] font-mono bg-[#0c0c0e] border border-[#27272a] rounded px-3 py-2 text-zinc-400 leading-relaxed select-all">
+                        <code className="block text-[10px] font-mono bg-[var(--c-stripe)] border border-[var(--c-border)] rounded px-3 py-2 text-zinc-400 leading-relaxed select-all">
                           curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - && sudo apt-get install -y nodejs
                         </code>
                         <p className="text-[10px] text-zinc-600">
@@ -918,7 +918,7 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
                   <AnimatePresence>
                     {wslOutput && (
                       <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
-                        <div ref={wslOutputRef} className="bg-[#0c0c0e] border border-[#27272a] rounded-lg p-3 max-h-40 overflow-y-auto">
+                        <div ref={wslOutputRef} className="bg-[var(--c-stripe)] border border-[var(--c-border)] rounded-lg p-3 max-h-40 overflow-y-auto">
                           <pre className="text-[11px] font-mono text-zinc-500 whitespace-pre-wrap leading-relaxed">{wslOutput}</pre>
                         </div>
                       </motion.div>
@@ -943,7 +943,7 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
               {activeTab === 'guide' && (
                 <div role="tabpanel" id="panel-guide" aria-labelledby="tab-guide" tabIndex={0} className="flex flex-col gap-5 text-xs text-zinc-400 leading-relaxed">
 
-                  <div className="flex items-start gap-3 p-3 bg-[#121214] border border-[#27272a] rounded-lg">
+                  <div className="flex items-start gap-3 p-3 bg-[var(--c-inset)] border border-[var(--c-border)] rounded-lg">
                     <Info size={14} className="text-orange-400 shrink-0 mt-0.5" />
                     <p>
                       Agent Teams is an <strong className="text-zinc-200">experimental Claude Code feature</strong> where a lead agent autonomously forms a team, assigns roles, and coordinates work through a shared task list — far beyond regular sub-agents.
@@ -1037,7 +1037,7 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
                     </div>
                   ))}
 
-                  <div className="p-3 bg-[#121214] border border-zinc-800 rounded-lg">
+                  <div className="p-3 bg-[var(--c-inset)] border border-zinc-800 rounded-lg">
                     <p className="text-[10px] text-zinc-600 leading-relaxed">
                       <strong className="text-zinc-400">Pro tip:</strong> Launch an interactive Claude Code terminal from the <strong className="text-zinc-500">AI Tools</strong> page first, explore the codebase, then paste a specific, detailed plan into Agent Teams. The more concrete your plan, the better the team composition.
                     </p>

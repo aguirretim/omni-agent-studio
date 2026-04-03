@@ -128,7 +128,7 @@ function GoalsTab({ projectPath }: GoalsTabProps) {
               ),
             },
           ].map(({ n, title, desc, action }) => (
-            <div key={n} className="flex items-start gap-3 bg-[#18181b] border border-[#27272a] rounded-lg px-4 py-3">
+            <div key={n} className="flex items-start gap-3 bg-[var(--c-surface)] border border-[var(--c-border)] rounded-lg px-4 py-3">
               <div className="shrink-0 w-5 h-5 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[10px] font-bold text-zinc-400 mt-0.5">
                 {n}
               </div>
@@ -200,7 +200,7 @@ function GoalsTab({ projectPath }: GoalsTabProps) {
               className={`flex items-start gap-3 rounded-lg px-3 py-2.5 transition-colors ${
                 isUpNext
                   ? 'border-l-2 border-orange-500 pl-2 bg-orange-500/5 border border-orange-500/20 border-l-orange-500'
-                  : 'bg-[#18181b] border border-[#27272a]'
+                  : 'bg-[var(--c-surface)] border border-[var(--c-border)]'
               }`}
             >
               <div className="shrink-0 mt-0.5">
@@ -285,7 +285,7 @@ function ProgressTab({ projectPath }: ProgressTabProps) {
           </div>
         </div>
       ) : (
-        <div className="rounded-xl border border-[#27272a] bg-[#09090b] overflow-hidden">
+        <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-bg)] overflow-hidden">
           <pre className="p-4 text-[12px] leading-relaxed font-mono text-zinc-300 whitespace-pre-wrap overflow-auto max-h-[60dvh] min-h-[200px]">
             {content}
           </pre>
@@ -352,7 +352,7 @@ function HowItWorksTab() {
         <p className="text-[11px] text-zinc-500 mb-2 leading-snug">
           Ralph stops the loop when it emits this token — indicating all goals are marked <span className="font-mono text-zinc-400">[x]</span>:
         </p>
-        <div className="rounded-lg border border-[#27272a] bg-[#0f0f11] px-4 py-3">
+        <div className="rounded-lg border border-[var(--c-border)] bg-[var(--c-deep)] px-4 py-3">
           <code className="text-[12px] font-mono text-emerald-400">{'<promise>COMPLETE</promise>'}</code>
         </div>
       </div>
@@ -368,13 +368,13 @@ function HowItWorksTab() {
       {/* Command reference */}
       <div>
         <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-3">Commands Reference</h3>
-        <div className="rounded-lg border border-[#27272a] overflow-hidden">
+        <div className="rounded-lg border border-[var(--c-border)] overflow-hidden">
           {[
             { cmd: '/ralph', desc: 'Run the autonomous loop — implements one Active Goal per iteration, commits, marks [x]', icon: <Terminal size={12} className="text-zinc-500" /> },
           ].map((row, i, arr) => (
             <div
               key={row.cmd}
-              className={`flex items-center gap-3 px-3 py-2.5 ${i < arr.length - 1 ? 'border-b border-[#27272a]' : ''} ${i % 2 === 0 ? 'bg-[#09090b]' : 'bg-[#0c0c0e]'}`}
+              className={`flex items-center gap-3 px-3 py-2.5 ${i < arr.length - 1 ? 'border-b border-[var(--c-border)]' : ''} ${i % 2 === 0 ? 'bg-[var(--c-bg)]' : 'bg-[var(--c-stripe)]'}`}
             >
               {row.icon}
               <span className="text-[11px] font-mono font-bold text-emerald-400 w-24 shrink-0">{row.cmd}</span>
@@ -436,14 +436,14 @@ export default function RalphPage() {
         </div>
 
         {/* Main card */}
-        <div className="bg-[#18181b] border border-[#27272a] rounded-xl overflow-hidden">
+        <div className="bg-[var(--c-surface)] border border-[var(--c-border)] rounded-xl overflow-hidden">
 
           {/* Tab bar */}
           <div
             role="tablist"
             aria-label="Ralph sections"
             onKeyDown={handleTabKeyDown}
-            className="flex border-b border-[#27272a] bg-[#0f0f11]"
+            className="flex border-b border-[var(--c-border)] bg-[var(--c-deep)]"
           >
             {TABS.map(tab => (
               <button
@@ -466,7 +466,7 @@ export default function RalphPage() {
           </div>
 
           {/* Tab panels */}
-          <div className="p-5 bg-[#09090b]">
+          <div className="p-5 bg-[var(--c-bg)]">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTab}

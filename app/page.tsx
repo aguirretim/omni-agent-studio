@@ -80,7 +80,7 @@ export default function HomePage() {
 
       {/* Welcome section (no workspace) */}
       {!projectPath && (
-        <div className="bg-[#18181b] border border-[#27272a] rounded-xl p-8">
+        <div className="bg-[var(--c-surface)] border border-[var(--c-border)] rounded-xl p-8">
           <div className="flex items-center gap-2 mb-2">
             <Sparkles size={18} className="text-zinc-400" />
             <h2 className="text-lg font-semibold text-zinc-100">Let's get you set up in 3 steps</h2>
@@ -94,7 +94,7 @@ export default function HomePage() {
             {steps.map((step) => (
               <div
                 key={step.number}
-                className="bg-[#121214] border border-[#27272a] rounded-lg p-4"
+                className="bg-[var(--c-inset)] border border-[var(--c-border)] rounded-lg p-4"
               >
                 <div className="w-6 h-6 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[11px] font-bold text-zinc-300 mb-3">
                   {step.number}
@@ -125,7 +125,7 @@ export default function HomePage() {
               <Link
                 key={action.href}
                 href={action.href}
-                className={`bg-[#18181b] border border-[#27272a] rounded-xl p-5 ${action.hoverBorder} transition-all cursor-pointer group`}
+                className={`bg-[var(--c-surface)] border border-[var(--c-border)] rounded-xl p-5 ${action.hoverBorder} transition-all cursor-pointer group`}
               >
                 <Icon size={20} className={`${action.accent} mb-3`} />
                 <h3 className="text-sm font-semibold text-zinc-200 mb-1">{action.label}</h3>

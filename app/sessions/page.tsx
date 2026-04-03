@@ -69,7 +69,7 @@ export default function SessionsPage() {
       </div>
 
       {/* Commit card */}
-      <div className="bg-[#18181b] border border-[#27272a] rounded-xl p-6">
+      <div className="bg-[var(--c-surface)] border border-[var(--c-border)] rounded-xl p-6">
         <div className="flex items-center gap-2 text-sm font-medium text-zinc-200 mb-1">
           <FolderGit2 size={16} className="text-amber-400" />
           Save Session

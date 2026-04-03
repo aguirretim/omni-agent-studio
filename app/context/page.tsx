@@ -290,9 +290,9 @@ export default function ContextPage() {
           </div>
         )}
 
-        <div className="bg-[#18181b] border border-[#27272a] rounded-xl flex flex-col overflow-hidden h-[70dvh] min-h-[300px]">
+        <div className="bg-[var(--c-surface)] border border-[var(--c-border)] rounded-xl flex flex-col overflow-hidden h-[70dvh] min-h-[300px]">
           {/* Toolbar */}
-          <div className="h-12 border-b border-[#27272a] bg-[#121214] flex items-center justify-between px-4 shrink-0">
+          <div className="h-12 border-b border-[var(--c-border)] bg-[var(--c-inset)] flex items-center justify-between px-4 shrink-0">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2 text-sm font-medium text-zinc-200">
                 <FileText size={15} className="text-zinc-500" />
@@ -345,7 +345,7 @@ export default function ContextPage() {
           </div>
 
           {/* Textarea */}
-          <div className="flex-1 relative bg-[#09090b]">
+          <div className="flex-1 relative bg-[var(--c-bg)]">
             {isLoadingContext ? (
               <div className="absolute inset-0 flex items-center justify-center">
                 <Loader2 size={20} className="animate-spin text-zinc-500" />
