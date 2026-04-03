@@ -1,0 +1,53 @@
+## Codebase Patterns
+- Dismissible banners: useState(false) + localStorage restore in useEffect; key pattern 'omni-*-dismissed'; apply id to text div + aria-describedby on dismiss button
+- Nav descriptions in AppShell: extend navItems array with description field; render below label in dimmer font; opacity-0 on inactive, always-visible on active
+- Tailwind v4: no config file; utility classes only; @import "tailwindcss" in globals.css
+- Info banners: border border-blue-500/20 bg-blue-500/5 rounded-lg p-4 flex items-start gap-3
+- All pages guard no-workspace state with early return showing a Go to Home link
+- Keyboard shortcuts in textareas: onKeyDown e.key + e.ctrlKey/e.metaKey check; always e.preventDefault() before calling handler
+
+---
+
+## 2026-04-03 - Verify run.ps1 beginner flow works
+- Verified .first-run-done logic (lines 229-256): writes date-stamped ASCII file after first full setup; $isFirstRun = (not exists) OR $freshInstall
+- Verified Claude Code install step [3/5] (lines 160-194): Get-Command claude check; npm install -g @anthropic-ai/claude-code; non-fatal on failure
+- Verified SETUP COMPLETE banner (lines 232-268): 4-step next-steps guide on first run; short "Everything ready" on subsequent runs
+- No code changes needed -- implementation was correct
+- Files changed: none
+- **Learnings for future iterations:**
+  - PowerShell scripts must use pure ASCII -- non-ASCII chars cause parse errors
+  - Non-fatal install steps should temporarily set $ErrorActionPreference = 'Continue' then restore 'Stop'
+
+---
+
+## 2026-04-03 - Add keyboard shortcut hints to AgentTeams Launch tab
+- Added onKeyDown handler to plan textarea: Ctrl+Enter (or Cmd+Enter) calls handleLaunch()
+- Added "Ctrl+Enter to launch" hint in the label row (right-aligned, font-mono zinc-700)
+- Added title="Launch agent team (Ctrl+Enter)" to the launch button
+- Files changed: components/features/AgentTeams.tsx
+- **Learnings for future iterations:**
+  - AgentTeams.tsx is ~1000 lines; use grep to find specific sections before reading the full file
+  - The plan textarea is at ~line 583; handleLaunch is at ~line 319
+
+---
+
+## 2026-04-03 - Add "What's next?" prompt on Ralph page when no goals set
+- Replaced bare "No Active Goals found" empty state with a full 3-step guide
+- Step 1: Open Shared Context (with link button)
+- Step 2: Add goals using checkbox format (with code example)
+- Step 3: Launch Claude Code and type /ralph (with link to AI Tools)
+- Added refresh note at bottom
+- Files changed: app/ralph/page.tsx
+- **Learnings for future iterations:**
+  - GoalsTab empty state is at ~line 72 in ralph/page.tsx
+  - RefreshCw icon was already imported; no new imports needed
+
+---
+
+## 2026-04-03 - Add aria-describedby to dismissible info banners
+- Context page banner: added id="context-banner-text" to text div; aria-describedby on button
+- Tools page banner: added id="tools-tip-text" to text div; aria-describedby on button; also fixed unescaped apostrophe (it's -> it&apos;s)
+- Files changed: app/context/page.tsx, app/tools/page.tsx
+- **Learnings for future iterations:**
+  - Always escape apostrophes in JSX string literals: it's -> it&apos;s
+  - Banner text divs need an id so the dismiss button can reference them via aria-describedby

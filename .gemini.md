@@ -137,11 +137,11 @@ No reminder needed — this is automatic, like saving a file.
 - **OpenCode**: NOT configured — `~/.config/opencode/auth.json` is empty, no `config.toml`. Needs `OPENAI_API_KEY` or provider config.
 
 ## Active Goals
-- [ ] Verify run.ps1 beginner flow works: .first-run-done logic, Claude Code install step, "SETUP COMPLETE" banner
-- [ ] Add keyboard shortcut hints to AgentTeams Launch tab (e.g., Ctrl+Enter to submit plan)
-- [ ] Consider adding a "Beginner Mode" toggle that shows extra help text throughout the app
-- [ ] Add a "What's next?" prompt on the Ralph page when no goals are set yet
-- [ ] Add aria-describedby to all dismissible info banners (context page + tools page) linking to their text
+- [x] Verify run.ps1 beginner flow works: .first-run-done logic, Claude Code install step, "SETUP COMPLETE" banner
+- [x] Add keyboard shortcut hints to AgentTeams Launch tab (e.g., Ctrl+Enter to submit plan)
+- [x] Consider adding a "Beginner Mode" toggle that shows extra help text throughout the app — dismissed: dismissible banners + nav descriptions already serve this purpose; a separate toggle adds complexity without value
+- [x] Add a "What's next?" prompt on the Ralph page when no goals are set yet
+- [x] Add aria-describedby to all dismissible info banners (context page + tools page) linking to their text
 - [x] Clean up — delete unused `components/GhostAgent.tsx` and `app/api/ghost/route.ts` (no UI calls them)
 - [x] Delete `.gemini-task-output.md` artifact (safe to remove between sessions; regenerated each run)
 - [x] Delete `out.txt` — raw terminal artifact from OpenCode probe (ANSI escape codes, not useful)
@@ -250,4 +250,5 @@ No reminder needed — this is automatic, like saving a file.
 - 2026-04-03 · Volume control · chime.ps1 amplitude 10000→2000 (~6% of max, -24dB); useAudioNotification.ts: added getAudioVolume/setAudioVolume (localStorage omni-audio-volume, default 40%); chime() scales peak gain by volume pref; AppShell.tsx: volume slider (w-16 range input) appears beside speaker icon when unmuted, title shows current %; preference persists across sessions
 - 2026-04-03 · Fix volume slider not affecting Stop hook · Root cause: localStorage is browser-only, chime.ps1 is a separate PowerShell process with no access to it · Fix: new app/api/audio/route.ts writes volume (0-100) to .claude/audio-volume.txt on slider change; chime.ps1 reads the file at runtime and scales amplitude (max 5000, default 40% = 2000); AppShell handleVolumeChange fires fetch to /api/audio (fire-and-forget)
 - 2026-04-03 · /build-with-agent-team · OpenClaude integration · Added OpenClaude (@gitlawb/openclaude) as 5th tool card (purple, 'OC' icon) in app/tools/page.tsx; added 'openclaude' to terminal/route.ts whitelist + install map; added launch-openclaude action to agent-teams/route.ts (provider selection: openai/gemini/deepseek/ollama/github, sets env vars, writes .omni-openclaude-launch.ps1); added Multi-LLM section to AgentTeams.tsx Launch tab with provider picker + launch button · 0 TS errors
+- 2026-04-03 · /ralph · Ctrl+Enter shortcut on AgentTeams plan textarea; Ralph empty-state 3-step guide; aria-describedby on context + tools banners · AgentTeams.tsx, ralph/page.tsx, context/page.tsx, tools/page.tsx
 - 2026-04-03 · /build-with-agent-team · Beginner friendliness overhaul · 3-agent team (launcher, ui, docs) · run.ps1: Claude Code auto-install [3/5], first-run-done tracking, SETUP COMPLETE banner, friendly error messages with URLs, step counters [1/5]-[5/5] · AppShell: nav items get descriptions ("Start here", "Tell AI about your project", etc.) · Home page: "Let's get you set up" headline, concrete step descriptions, workspace helper text · Context page: dismissible info banner explaining what AI Instructions are · Tools page: dismissible beginner tip for first-time users · README.md: complete plain-English rewrite with FAQ · HowToUse modal: removed all jargon, "Got it let's go!" close button · 0 TS errors
