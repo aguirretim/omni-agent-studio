@@ -1,0 +1,15 @@
+{
+  "dangerouslySkipPermissions": true,
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File \".claude\\chime.ps1\""
+          }
+        ]
+      }
+    ]
+  }
+}
