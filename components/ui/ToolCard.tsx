@@ -83,25 +83,6 @@ export default function ToolCard({
           </div>
         </div>
 
-        {/* Terminal type picker */}
-        <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
-          <span className="text-[10px] text-zinc-600 shrink-0">Open in:</span>
-          {(['cmd', 'powershell'] as const).map(t => (
-            <button
-              key={t}
-              type="button"
-              onClick={e => { e.stopPropagation(); setTerminalType(t); }}
-              className={`px-2 py-0.5 rounded text-[10px] font-mono border transition-all ${
-                terminalType === t
-                  ? 'bg-zinc-700 border-zinc-500 text-zinc-200'
-                  : 'bg-transparent border-zinc-800 text-zinc-600 hover:border-zinc-600 hover:text-zinc-400'
-              }`}
-            >
-              {t === 'cmd' ? 'CMD' : 'PowerShell'}
-            </button>
-          ))}
-        </div>
-
         {/* Detail text */}
         <p className="text-[11px] text-zinc-500 leading-relaxed">{detail}</p>
 
@@ -117,6 +98,25 @@ export default function ToolCard({
           ))}
         </div>
       </button>
+
+      {/* Terminal type picker — must live outside the card <button> */}
+      <div className="flex items-center gap-1.5 px-1.5">
+        <span className="text-[10px] text-zinc-600 shrink-0">Open in:</span>
+        {(['cmd', 'powershell'] as const).map(t => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTerminalType(t)}
+            className={`px-2 py-0.5 rounded text-[10px] font-mono border transition-all ${
+              terminalType === t
+                ? 'bg-zinc-700 border-zinc-500 text-zinc-200'
+                : 'bg-transparent border-zinc-800 text-zinc-600 hover:border-zinc-600 hover:text-zinc-400'
+            }`}
+          >
+            {t === 'cmd' ? 'CMD' : 'PowerShell'}
+          </button>
+        ))}
+      </div>
 
       <div className="px-1.5 mt-0.5">
         <a
