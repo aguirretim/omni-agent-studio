@@ -5,6 +5,7 @@ import Link from 'next/link';
 
 import { FileText, Save, Loader2, Home, CheckCircle2, RotateCcw } from 'lucide-react';
 import { useWorkspace } from '@/components/layout/WorkspaceProvider';
+import { useAudioNotification } from '@/components/ui/useAudioNotification';
 
 const AUTO_SAVE_DELAY_MS = 2000;
 
@@ -118,6 +119,7 @@ No reminder needed — this is automatic, like saving a file.
 
 export default function ContextPage() {
   const { projectPath, setSyncStatus, addRecentPath } = useWorkspace();
+  const chime = useAudioNotification();
   const [contextData, setContextData] = useState('');
   const [isLoadingContext, setIsLoadingContext] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -230,6 +232,7 @@ export default function ContextPage() {
     try {
       await syncToFiles(contextData);
       setSyncStatus('Context saved');
+      chime();
     } finally {
       setIsSyncing(false);
     }

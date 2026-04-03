@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     const isWindows = os.platform() === 'win32';
 
     // Safety list of allowed commands
-    const allowedCommands = ['claude', 'gemini', 'opencode', 'codex'];
+    const allowedCommands = ['claude', 'gemini', 'opencode', 'codex', 'openclaude'];
     if (!allowedCommands.includes(command)) {
        return NextResponse.json({ error: 'Command not in whitelist' }, { status: 403 });
     }
@@ -40,13 +40,15 @@ export async function POST(req: NextRequest) {
         claude: 'npm install -g @anthropic-ai/claude-code',
         gemini: 'npm install -g @google/gemini-cli',
         opencode: 'npm install -g opencode-ai',
-        codex: 'npm install -g @openai/codex'
+        codex: 'npm install -g @openai/codex',
+        openclaude: 'npm install -g @gitlawb/openclaude',
       };
       const binaryName: Record<string, string> = {
         claude: 'claude',
         gemini: 'gemini',
         opencode: 'opencode',
-        codex: 'codex'
+        codex: 'codex',
+        openclaude: 'openclaude',
       };
 
       const installCmd = installCommands[command];

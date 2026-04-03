@@ -4677,6 +4677,67 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, mode: 'cmd' });
     }
 
+    // ── Launch OpenClaude with a specific LLM provider ──────────────────────
+    if (action === 'launch-openclaude') {
+      if (!projectPath) return NextResponse.json({ error: 'projectPath is required' }, { status: 400 });
+
+      const ALLOWED_PROVIDERS = ['openai', 'gemini', 'deepseek', 'ollama', 'github'] as const;
+      type OcProvider = typeof ALLOWED_PROVIDERS[number];
+      const rawProvider = body.provider as string;
+      const provider: OcProvider = ALLOWED_PROVIDERS.includes(rawProvider as OcProvider) ? (rawProvider as OcProvider) : 'openai';
+
+      // Provider-specific PowerShell env var lines
+      const providerEnv: Record<OcProvider, string[]> = {
+        openai: [
+          `$env:CLAUDE_CODE_USE_OPENAI = '1'`,
+        ],
+        gemini: [
+          // Gemini auth is handled interactively via /provider inside openclaude
+        ],
+        deepseek: [
+          `$env:CLAUDE_CODE_USE_OPENAI = '1'`,
+          `$env:OPENAI_BASE_URL = 'https://api.deepseek.com'`,
+          `$env:OPENAI_MODEL = 'deepseek-coder'`,
+        ],
+        ollama: [
+          `$env:CLAUDE_CODE_USE_OPENAI = '1'`,
+          `$env:OPENAI_BASE_URL = 'http://localhost:11434/v1'`,
+          `$env:OPENAI_MODEL = 'llama3'`,
+        ],
+        github: [
+          // GitHub Models: use /onboard-github inside openclaude to configure
+        ],
+      };
+
+      const safeProjectPath = projectPath.replace(/'/g, "''");
+      const ps1Lines = [
+        `$env:PATH = [System.Environment]::GetEnvironmentVariable('PATH','User') + ';' + [System.Environment]::GetEnvironmentVariable('PATH','Machine')`,
+        `Set-Location '${safeProjectPath}'`,
+        ...providerEnv[provider],
+        `Write-Host ''`,
+        `Write-Host '[OpenClaude] Provider: ${provider}' -ForegroundColor Magenta`,
+        `Write-Host '[OpenClaude] Use /provider inside to configure credentials.' -ForegroundColor DarkGray`,
+        `Write-Host ''`,
+        `openclaude`,
+      ];
+
+      const ps1Path = path.join(projectPath, '.omni-openclaude-launch.ps1');
+      fs.writeFileSync(ps1Path, ps1Lines.join('\r\n'), { encoding: 'utf8' });
+
+      const { execSync: esOc } = await import('child_process');
+      let hasWt = false;
+      try { esOc('where wt', { stdio: 'pipe', timeout: 3000 }); hasWt = true; } catch {}
+
+      if (hasWt) {
+        const wtOc = spawn('wt.exe', ['--title', `OpenClaude - ${provider}`, '--', 'powershell', '-NoExit', '-ExecutionPolicy', 'Bypass', '-File', ps1Path], { shell: false });
+        wtOc.on('error', (err) => console.error('[agent-teams] openclaude wt error:', err.message));
+        return NextResponse.json({ success: true, mode: 'wt' });
+      }
+      const cmdOc = spawn('cmd.exe', ['/c', 'start', `OpenClaude - ${provider}`, 'powershell', '-NoExit', '-ExecutionPolicy', 'Bypass', '-File', ps1Path], { shell: false });
+      cmdOc.on('error', (err) => console.error('[agent-teams] openclaude launch error:', err.message));
+      return NextResponse.json({ success: true, mode: 'cmd' });
+    }
+
     // ── Launch headless (streaming) ─────────────────────────────────────────
     if (action === 'launch-headless') {
       if (!projectPath || !plan) {

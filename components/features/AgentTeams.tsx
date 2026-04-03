@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import SplitPanePreview from '@/components/features/SplitPanePreview';
+import { useAudioNotification } from '@/components/ui/useAudioNotification';
 
 interface WslStatus {
   wslAvailable: boolean;
@@ -61,6 +62,8 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
   const [agentCount, setAgentCount] = useState<number | 'auto'>('auto');
   const [plan, setPlan] = useState('');
   const [terminalType, setTerminalType] = useState<'auto' | 'wt-tmux' | 'wt-ps' | 'cmd-ps'>('auto');
+  const [openclaudeProvider, setOpenclaudeProvider] = useState<'openai' | 'gemini' | 'deepseek' | 'ollama' | 'github'>('openai');
+  const [isLaunchingOc, setIsLaunchingOc] = useState(false);
 
   const suggestedSkills = useMemo(() => {
     if (!plan.trim()) return [];
@@ -141,6 +144,8 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
       if (pollDistroRef.current) clearInterval(pollDistroRef.current);
     };
   }, []);
+
+  const chime = useAudioNotification();
 
   const flash = (msg: string) => {
     setSyncStatus(msg);
@@ -290,6 +295,27 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
     finally { setIsInstallingTmux(false); }
   };
 
+  const handleLaunchOpenClaude = async () => {
+    if (!projectPath) return;
+    setIsLaunchingOc(true);
+    flash(`Launching OpenClaude (${openclaudeProvider})...`);
+    try {
+      const res = await fetch('/api/agent-teams', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'launch-openclaude', projectPath, provider: openclaudeProvider }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        flash(`OpenClaude (${openclaudeProvider}) opened`);
+        chime();
+      } else {
+        flash(data.error ?? 'Failed to launch OpenClaude');
+      }
+    } catch { flash('Failed to launch OpenClaude'); }
+    finally { setIsLaunchingOc(false); }
+  };
+
   const handleLaunch = async () => {
     if (!projectPath) return;
     const count = agentCount === 'auto' ? undefined : agentCount;
@@ -307,6 +333,7 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
         'cmd':     'PowerShell opened -- teammates inline (Shift+Down to cycle)',
       };
       flash(modeMsg[data.mode] ?? 'Agent team terminal launched');
+      chime();
     } catch { flash('Failed to launch terminal'); }
   };
 
@@ -624,6 +651,53 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
                     <Play size={15} />
                     {plan.trim() ? 'Launch Agent Team' : `Launch Agent Team (${agentCount === 'auto' ? 'Auto' : agentCount} agents)`}
                   </button>
+
+                  {/* ── Multi-LLM via OpenClaude ── */}
+                  <div className="border-t border-[#27272a] pt-4 flex flex-col gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wider">Other LLMs via OpenClaude</span>
+                      <span className="text-[9px] text-zinc-700 font-mono">@gitlawb/openclaude</span>
+                    </div>
+                    <p className="text-[10px] text-zinc-600 leading-relaxed">
+                      OpenClaude brings Claude Code-style agentic workflows to any LLM provider. Launch a separate instance alongside your Claude team for cost optimisation, local models (Ollama), or provider redundancy.
+                    </p>
+                    <div className="flex flex-col gap-1.5">
+                      <span id="oc-provider-label" className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wider">Provider</span>
+                      <div role="group" aria-labelledby="oc-provider-label" className="flex items-center gap-1 flex-wrap">
+                        {([
+                          { value: 'openai',   label: 'OpenAI' },
+                          { value: 'gemini',   label: 'Gemini' },
+                          { value: 'deepseek', label: 'DeepSeek' },
+                          { value: 'ollama',   label: 'Ollama' },
+                          { value: 'github',   label: 'GitHub Models' },
+                        ] as const).map(({ value, label }) => (
+                          <button
+                            key={value}
+                            onClick={() => setOpenclaudeProvider(value)}
+                            aria-pressed={openclaudeProvider === value}
+                            className={`px-2.5 py-1 rounded text-[11px] font-semibold transition-all border ${
+                              openclaudeProvider === value
+                                ? 'bg-purple-500/20 text-purple-400 border-purple-500/40'
+                                : 'bg-zinc-800 text-zinc-500 border-zinc-700 hover:border-zinc-600 hover:text-zinc-400'
+                            }`}
+                          >{label}</button>
+                        ))}
+                      </div>
+                    </div>
+                    {openclaudeProvider === 'ollama' && (
+                      <p className="text-[10px] text-zinc-600 leading-relaxed">
+                        Ollama must be running locally on port 11434. OpenClaude will connect to <code className="text-zinc-500">http://localhost:11434/v1</code> using the <code className="text-zinc-500">llama3</code> model by default. Use <code className="text-zinc-500">/provider</code> inside OpenClaude to change the model.
+                      </p>
+                    )}
+                    <button
+                      onClick={handleLaunchOpenClaude}
+                      disabled={!projectPath || isLaunchingOc}
+                      className="w-full py-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/30 hover:border-purple-500/50 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-purple-500/10"
+                    >
+                      {isLaunchingOc ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
+                      Launch OpenClaude ({openclaudeProvider})
+                    </button>
+                  </div>
                 </div>
               )}
 
