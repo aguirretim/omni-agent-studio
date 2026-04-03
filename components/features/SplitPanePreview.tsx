@@ -130,10 +130,11 @@ function TerminalPane({ agent, delay }: { agent: AgentPane; delay: number }) {
 export default function SplitPanePreview({ onLaunch }: SplitPanePreviewProps) {
   return (
     <div className="flex flex-col gap-4">
-      {/* Terminal mosaic */}
+      {/* Terminal mosaic — color-scheme: dark keeps scrollbars dark in light mode */}
       <div
         aria-hidden="true"
         className="rounded-xl border border-[#27272a] bg-[#050507] overflow-hidden h-[min(400px,60vw)]"
+        style={{ colorScheme: 'dark' }}
       >
         <div className="grid grid-cols-2 grid-rows-2 h-full divide-x divide-y divide-[#27272a]">
           {AGENTS.map((agent, i) => (
