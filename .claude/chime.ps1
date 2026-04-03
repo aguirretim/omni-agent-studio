@@ -8,7 +8,9 @@
 # Check mute state before loading audio assembly.
 # The app writes .claude/audio-enabled.txt ("0" = muted, "1" = enabled).
 # File missing = default enabled.
-$enabledFile = ".claude\audio-enabled.txt"
+# Use $PSScriptRoot so paths resolve correctly regardless of the caller's CWD.
+# $PSScriptRoot = the .claude/ directory where this script lives.
+$enabledFile = Join-Path $PSScriptRoot "audio-enabled.txt"
 if (Test-Path $enabledFile) {
     $enabledRaw = (Get-Content $enabledFile -Raw).Trim()
     if ($enabledRaw -eq "0") { exit 0 }
@@ -34,7 +36,7 @@ function Write-LE32([int]$v, [byte[]]$buf, [int]$off) {
 # The app writes .claude/audio-volume.txt via /api/audio when the slider changes.
 # Max amplitude 5000: at 40% default -> 2000 (quiet), at 100% -> 5000.
 $volPct = 40
-$volFile = ".claude\audio-volume.txt"
+$volFile = Join-Path $PSScriptRoot "audio-volume.txt"
 if (Test-Path $volFile) {
     $raw = (Get-Content $volFile -Raw).Trim()
     $parsed = 0

@@ -52,6 +52,8 @@ next-env.d.ts
 .omni-launch-ps.bat
 .omni-wt-launch.bat
 .omni-openclaude-launch.bat
+.claude/audio-enabled.txt
+.claude/audio-volume.txt
 AGENT_TASKS.md
 .gemini-task-output.md
 .gemini-analysis.md
