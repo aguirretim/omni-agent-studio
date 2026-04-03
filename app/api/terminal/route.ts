@@ -81,12 +81,20 @@ export async function POST(req: NextRequest) {
         const ps1Path = path.join(resolvedPath, '.omni-launch.ps1');
         fs.writeFileSync(ps1Path, psLines.join('\r\n'), { encoding: 'utf8' });
 
-        // Use conhost.exe -- powershell so the window uses legacy console host.
-        // Legacy conhost handles WM_DROPFILES natively: dragging a file onto the
-        // window inserts its path directly without requiring Ctrl+V.
+        // Wrap the .ps1 in a .bat so explorer.exe can open it — explorer gives the
+        // spawned CMD window proper Explorer process parentage, which is required for
+        // WM_DROPFILES (file drag-drop) to work. Spawning via conhost.exe directly
+        // from Node.js breaks drag-drop because the window inherits WSL/Node lineage.
+        const psWrapLines = [
+          '@echo off',
+          `"${psExe}" -NoExit -ExecutionPolicy Bypass -File "${ps1Path}"`,
+        ];
+        const psWrapPath = path.join(resolvedPath, '.omni-launch-ps.bat');
+        fs.writeFileSync(psWrapPath, psWrapLines.join('\r\n'), { encoding: 'utf8' });
+
         child = spawn(
-          conhostExe,
-          ['--', psExe, '-NoExit', '-ExecutionPolicy', 'Bypass', '-File', ps1Path],
+          'explorer.exe',
+          [psWrapPath],
           { shell: false, detached: true, stdio: 'ignore' },
         );
       } else {
@@ -101,12 +109,13 @@ export async function POST(req: NextRequest) {
         const batPath = path.join(resolvedPath, '.omni-launch.bat');
         fs.writeFileSync(batPath, batLines.join('\r\n'), { encoding: 'utf8' });
 
-        // Use conhost.exe -- cmd so the window uses legacy console host.
-        // Legacy conhost handles WM_DROPFILES natively: dragging a file onto the
-        // window inserts its path directly without requiring Ctrl+V.
+        // Open the .bat via explorer.exe so the spawned CMD window has proper
+        // Explorer process parentage — required for WM_DROPFILES (file drag-drop).
+        // Spawning conhost.exe directly from Node.js breaks drag-drop because the
+        // window inherits Node/WSL process lineage instead of Explorer's.
         child = spawn(
-          conhostExe,
-          ['--', cmdExe, '/K', batPath],
+          'explorer.exe',
+          [batPath],
           { shell: false, detached: true, stdio: 'ignore' },
         );
       }

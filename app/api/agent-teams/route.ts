@@ -4637,10 +4637,20 @@ export async function POST(req: NextRequest) {
         fs.writeFileSync(scriptWinPath, lines.join('\n'), { encoding: 'utf8' });
         const scriptWslPath = toWslPath(scriptWinPath);
 
-        // C3: no shell interpolation — all arguments passed as array
+        // Launch WT via its UWP App ID (same path the Start menu uses) so the
+        // window gets proper Explorer-lineage process attributes — required for
+        // file drag-drop (WM_DROPFILES / IDropTarget) to work.
+        // Spawning wt.exe directly from Node.js breaks drag-drop.
         const windowTitle = path.basename(projectPath);
-        const wtProc = spawn('wt.exe', ['--title', windowTitle, 'wsl.exe', 'bash', scriptWslPath], { shell: false });
+        const wtBat1Lines = [
+          '@echo off',
+          `start "" "shell:AppsFolder\\Microsoft.WindowsTerminal_8wekyb3d8bbwe!App" --title "${windowTitle}" wsl.exe bash "${scriptWslPath}"`,
+        ];
+        const wtBat1Path = path.join(projectPath, '.omni-wt-launch.bat');
+        fs.writeFileSync(wtBat1Path, wtBat1Lines.join('\r\n'), { encoding: 'utf8' });
+        const wtProc = spawn('explorer.exe', [wtBat1Path], { shell: false, detached: true, stdio: 'ignore' });
         wtProc.on('error', (err) => console.error('[agent-teams] wt-tmux error:', err.message));
+        wtProc.unref();
         return NextResponse.json({ success: true, mode: 'wt-tmux' });
       }
 
@@ -4665,15 +4675,32 @@ export async function POST(req: NextRequest) {
       fs.writeFileSync(ps1Path, ps1Lines.join('\r\n'), { encoding: 'utf8' });
 
       if (hasWindowsTerminal) {
-        // C3: no shell interpolation — all arguments passed as array
-        const wtPs1Proc = spawn('wt.exe', ['--title', path.basename(projectPath), '--', 'powershell', '-NoExit', '-ExecutionPolicy', 'Bypass', '-File', ps1Path], { shell: false });
+        // Launch WT via UWP App ID for proper Explorer-lineage drag-drop support
+        const wtBat2Lines = [
+          '@echo off',
+          `start "" "shell:AppsFolder\\Microsoft.WindowsTerminal_8wekyb3d8bbwe!App" --title "${path.basename(projectPath)}" -- powershell -NoExit -ExecutionPolicy Bypass -File "${ps1Path}"`,
+        ];
+        const wtBat2Path = path.join(projectPath, '.omni-wt-launch.bat');
+        fs.writeFileSync(wtBat2Path, wtBat2Lines.join('\r\n'), { encoding: 'utf8' });
+        const wtPs1Proc = spawn('explorer.exe', [wtBat2Path], { shell: false, detached: true, stdio: 'ignore' });
         wtPs1Proc.on('error', (err) => console.error('[agent-teams] wt launch error:', err.message));
+        wtPs1Proc.unref();
         return NextResponse.json({ success: true, mode: 'wt-cmd' });
       }
 
-      // C3: no shell interpolation — all arguments passed as array
-      const startProc = spawn('cmd.exe', ['/c', 'start', 'Agent Team - Claude Code', 'powershell', '-NoExit', '-ExecutionPolicy', 'Bypass', '-File', ps1Path], { shell: false });
+      // Wrap the .ps1 in a .bat and open via explorer.exe so the spawned window
+      // inherits Explorer's process lineage — required for WM_DROPFILES drag-drop.
+      // Spawning via cmd.exe/Node.js directly breaks drag-drop (WSL/Node lineage).
+      const sysPs = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
+      const batWrapLines = [
+        '@echo off',
+        `"${sysPs}" -NoExit -ExecutionPolicy Bypass -File "${ps1Path}"`,
+      ];
+      const batWrapPath = path.join(projectPath, '.agent-team-launch.bat');
+      fs.writeFileSync(batWrapPath, batWrapLines.join('\r\n'), { encoding: 'utf8' });
+      const startProc = spawn('explorer.exe', [batWrapPath], { shell: false, detached: true, stdio: 'ignore' });
       startProc.on('error', (err) => console.error('[agent-teams] launch error:', err.message));
+      startProc.unref();
       return NextResponse.json({ success: true, mode: 'cmd' });
     }
 
@@ -4729,11 +4756,26 @@ export async function POST(req: NextRequest) {
       try { esOc('where wt', { stdio: 'pipe', timeout: 3000 }); hasWt = true; } catch {}
 
       if (hasWt) {
-        const wtOc = spawn('wt.exe', ['--title', `OpenClaude - ${provider}`, '--', 'powershell', '-NoExit', '-ExecutionPolicy', 'Bypass', '-File', ps1Path], { shell: false });
+        // Launch WT via UWP App ID for Explorer-lineage drag-drop support
+        const wtOcBatLines = [
+          '@echo off',
+          `start "" "shell:AppsFolder\\Microsoft.WindowsTerminal_8wekyb3d8bbwe!App" --title "OpenClaude - ${provider}" -- powershell -NoExit -ExecutionPolicy Bypass -File "${ps1Path}"`,
+        ];
+        const wtOcBatPath = path.join(projectPath, '.omni-wt-launch.bat');
+        fs.writeFileSync(wtOcBatPath, wtOcBatLines.join('\r\n'), { encoding: 'utf8' });
+        const wtOc = spawn('explorer.exe', [wtOcBatPath], { shell: false, detached: true, stdio: 'ignore' });
         wtOc.on('error', (err) => console.error('[agent-teams] openclaude wt error:', err.message));
+        wtOc.unref();
         return NextResponse.json({ success: true, mode: 'wt' });
       }
-      const cmdOc = spawn('cmd.exe', ['/c', 'start', `OpenClaude - ${provider}`, 'powershell', '-NoExit', '-ExecutionPolicy', 'Bypass', '-File', ps1Path], { shell: false });
+      // Fallback: wrap in .bat and open via explorer.exe for drag-drop support
+      const ocBatLines = [
+        '@echo off',
+        `powershell -NoExit -ExecutionPolicy Bypass -File "${ps1Path}"`,
+      ];
+      const ocBatPath = path.join(projectPath, '.omni-openclaude-launch.bat');
+      fs.writeFileSync(ocBatPath, ocBatLines.join('\r\n'), { encoding: 'utf8' });
+      const cmdOc = spawn('explorer.exe', [ocBatPath], { shell: false, detached: true, stdio: 'ignore' });
       cmdOc.on('error', (err) => console.error('[agent-teams] openclaude launch error:', err.message));
       return NextResponse.json({ success: true, mode: 'cmd' });
     }

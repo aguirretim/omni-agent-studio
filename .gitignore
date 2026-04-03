@@ -47,6 +47,11 @@ next-env.d.ts
 .agent-team-launch.ps1
 .agent-team-launch.sh
 .agent-team-launch.bat
+.omni-launch.bat
+.omni-launch.ps1
+.omni-launch-ps.bat
+.omni-wt-launch.bat
+.omni-openclaude-launch.bat
 AGENT_TASKS.md
 .gemini-task-output.md
 .gemini-analysis.md
