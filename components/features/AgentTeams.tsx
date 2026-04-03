@@ -124,6 +124,15 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
   const [isInstallingAllPacks, setIsInstallingAllPacks] = useState(false);
   const [installAllPacksProgress, setInstallAllPacksProgress] = useState<{ done: number; total: number } | null>(null);
 
+  // Restore persisted pack install status from localStorage (project-scoped key)
+  const packStatusKey = `omni-packs-${projectPath}`;
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(packStatusKey);
+      if (saved) setInstalledPacks(JSON.parse(saved) as Record<string, boolean>);
+    } catch {}
+  }, [packStatusKey]);
+
   const wslOutputRef = useRef<HTMLDivElement>(null);
   const pollDistroRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollAttemptsRef = useRef(0);
@@ -356,6 +365,14 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
     finally { setIsLoadingPacks(false); }
   }, [packs.length]);
 
+  const markPackInstalled = useCallback((packId: string) => {
+    setInstalledPacks(prev => {
+      const next = { ...prev, [packId]: true };
+      try { localStorage.setItem(packStatusKey, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }, [packStatusKey]);
+
   const handleInstallPack = async (packId: string) => {
     if (!projectPath) { flash('Set workspace first'); return; }
     setInstallingPack(packId);
@@ -367,7 +384,7 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
       });
       const data = await res.json();
       if (res.ok) {
-        setInstalledPacks(prev => ({ ...prev, [packId]: true }));
+        markPackInstalled(packId);
         flash(`Installed ${data.count} skills from ${packId}`);
       } else flash(`Error: ${data.error}`);
     } catch { flash('Failed to install pack'); }
@@ -391,7 +408,7 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
         });
         const data = await res.json();
         if (res.ok) {
-          setInstalledPacks(prev => ({ ...prev, [pack.id]: true }));
+          markPackInstalled(pack.id);
         } else {
           flash(`Error installing ${pack.id}: ${data.error}`);
         }
