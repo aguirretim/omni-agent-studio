@@ -121,6 +121,8 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
   const [installingPack, setInstallingPack] = useState<string | null>(null);
   const [installedPacks, setInstalledPacks] = useState<Record<string, boolean>>({});
   const [isLoadingPacks, setIsLoadingPacks] = useState(false);
+  const [isInstallingAllPacks, setIsInstallingAllPacks] = useState(false);
+  const [installAllPacksProgress, setInstallAllPacksProgress] = useState<{ done: number; total: number } | null>(null);
 
   const wslOutputRef = useRef<HTMLDivElement>(null);
   const pollDistroRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -370,6 +372,38 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
       } else flash(`Error: ${data.error}`);
     } catch { flash('Failed to install pack'); }
     finally { setInstallingPack(null); }
+  };
+
+  const handleInstallAllPacks = async () => {
+    if (!projectPath) { flash('Set workspace first'); return; }
+    const pending = packs.filter(p => !installedPacks[p.id]);
+    if (pending.length === 0) { flash('All library packs already installed'); return; }
+    setIsInstallingAllPacks(true);
+    setInstallAllPacksProgress({ done: 0, total: pending.length });
+    let done = 0;
+    for (const pack of pending) {
+      setInstallingPack(pack.id);
+      try {
+        const res = await fetch('/api/agent-teams', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'install-pack', projectPath, packId: pack.id }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setInstalledPacks(prev => ({ ...prev, [pack.id]: true }));
+        } else {
+          flash(`Error installing ${pack.id}: ${data.error}`);
+        }
+      } catch { flash(`Failed to install ${pack.id}`); }
+      done++;
+      setInstallAllPacksProgress({ done, total: pending.length });
+    }
+    setInstallingPack(null);
+    setIsInstallingAllPacks(false);
+    setInstallAllPacksProgress(null);
+    flash(`Installed all ${pending.length} library packs`);
+    chime();
   };
 
   const allReady = wslStatus?.wslAvailable && wslStatus?.distroInstalled && wslStatus?.tmuxInstalled && wslStatus?.claudeInWsl;
@@ -1005,8 +1039,33 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
 
               {activeTab === 'library' && (
                 <div role="tabpanel" id="panel-library" aria-labelledby="tab-library" tabIndex={0} className="flex flex-col gap-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-start justify-between gap-3">
                     <p className="text-[11px] text-zinc-500">Community skill packs from popular GitHub repos. Install to your project&apos;s <code className="text-orange-300">.claude/commands/</code> folder.</p>
+                    {packs.length > 0 && (
+                      <button
+                        onClick={handleInstallAllPacks}
+                        disabled={isInstallingAllPacks || !projectPath || packs.every(p => installedPacks[p.id])}
+                        title="Install all community skill packs into your project"
+                        aria-label={
+                          packs.every(p => installedPacks[p.id])
+                            ? 'All library packs installed'
+                            : isInstallingAllPacks && installAllPacksProgress
+                              ? `Installing packs, ${installAllPacksProgress.done} of ${installAllPacksProgress.total} done`
+                              : 'Install all library skill packs'
+                        }
+                        className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
+                          packs.every(p => installedPacks[p.id])
+                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 cursor-default'
+                            : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border-zinc-700 hover:border-zinc-600'
+                        } disabled:opacity-60`}
+                      >
+                        {isInstallingAllPacks
+                          ? <><Loader2 size={12} className="animate-spin" /> {installAllPacksProgress ? `${installAllPacksProgress.done}/${installAllPacksProgress.total}…` : 'Installing…'}</>
+                          : packs.every(p => installedPacks[p.id])
+                            ? <><CheckCircle2 size={12} /> All Installed</>
+                            : <><Download size={12} /> Install All Packs</>}
+                      </button>
+                    )}
                   </div>
 
                   {isLoadingPacks && (
