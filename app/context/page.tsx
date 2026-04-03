@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 
-import { FileText, Save, Loader2, Home, CheckCircle2, RotateCcw } from 'lucide-react';
+import { FileText, Save, Loader2, Home, CheckCircle2, RotateCcw, X } from 'lucide-react';
 import { useWorkspace } from '@/components/layout/WorkspaceProvider';
 import { useAudioNotification } from '@/components/ui/useAudioNotification';
 
@@ -124,8 +124,21 @@ export default function ContextPage() {
   const [isLoadingContext, setIsLoadingContext] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>('idle');
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedContent = useRef<string>('');
+
+  // Restore banner dismissed state from localStorage after hydration
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setBannerDismissed(localStorage.getItem('omni-context-banner-dismissed') === 'true');
+    }
+  }, []);
+
+  const dismissBanner = () => {
+    setBannerDismissed(true);
+    localStorage.setItem('omni-context-banner-dismissed', 'true');
+  };
 
   const handleLoadContext = useCallback(async (pathToLoad: string) => {
     if (!pathToLoad) return;
@@ -260,6 +273,22 @@ export default function ContextPage() {
   return (
     <div className="flex-1 min-h-0 overflow-y-auto">
       <div className="p-6 flex flex-col gap-6 max-w-[1200px] mx-auto w-full">
+        {!bannerDismissed && (
+          <div className="border border-blue-500/20 bg-blue-500/5 rounded-lg p-4 flex items-start gap-3">
+            <div className="flex-1 text-[13px] text-zinc-400 leading-relaxed">
+              This is your AI Instructions file. Write what your project is about, what rules the AI should follow, and what goals you want to achieve. Every AI tool you launch will read this file automatically — so anything you write here applies to all of them.
+            </div>
+            <button
+              onClick={dismissBanner}
+              className="shrink-0 p-1 text-zinc-600 hover:text-zinc-400 hover:bg-zinc-800 rounded transition-colors"
+              aria-label="Dismiss banner"
+              title="Dismiss"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
+
         <div className="bg-[#18181b] border border-[#27272a] rounded-xl flex flex-col overflow-hidden h-[70dvh] min-h-[300px]">
           {/* Toolbar */}
           <div className="h-12 border-b border-[#27272a] bg-[#121214] flex items-center justify-between px-4 shrink-0">

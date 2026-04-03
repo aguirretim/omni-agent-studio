@@ -1,7 +1,8 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Terminal, Home } from 'lucide-react';
+import { Terminal, Home, X } from 'lucide-react';
 
 import { useWorkspace } from '@/components/layout/WorkspaceProvider';
 import ToolCard from '@/components/ui/ToolCard';
@@ -76,6 +77,19 @@ const tools = [
 
 export default function ToolsPage() {
   const { projectPath } = useWorkspace();
+  const [tipDismissed, setTipDismissed] = useState(false);
+
+  // Restore dismissed state from localStorage after hydration
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setTipDismissed(localStorage.getItem('omni-tools-tip-dismissed') === 'true');
+    }
+  }, []);
+
+  const dismissTip = () => {
+    setTipDismissed(true);
+    localStorage.setItem('omni-tools-tip-dismissed', 'true');
+  };
 
   // Empty state
   if (!projectPath) {
@@ -106,6 +120,23 @@ export default function ToolsPage() {
             Launch an AI coding assistant in a new terminal window. Each tool reads your shared context file automatically.
           </p>
         </div>
+
+        {/* Beginner tip */}
+        {!tipDismissed && (
+          <div className="border border-blue-500/20 bg-blue-500/5 rounded-lg p-4 flex items-start gap-3">
+            <div className="flex-1 text-[13px] text-zinc-400 leading-relaxed">
+              New here? Start with <span className="text-zinc-200 font-medium">Claude Code</span> — it's the most capable and works great for any coding task. Just click the card, and a terminal window will open ready to go.
+            </div>
+            <button
+              onClick={dismissTip}
+              className="shrink-0 p-1 text-zinc-600 hover:text-zinc-400 hover:bg-zinc-800 rounded transition-colors"
+              aria-label="Dismiss tip"
+              title="Dismiss"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
 
         {/* Tool cards grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

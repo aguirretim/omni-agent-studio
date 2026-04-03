@@ -47,17 +47,17 @@ const steps = [
   {
     number: '1',
     title: 'Connect',
-    description: 'Point to your project folder using the input above',
+    description: 'Click the folder icon above and pick your project folder (or any folder to get started)',
   },
   {
     number: '2',
     title: 'Write Context',
-    description: 'Create shared instructions that all AI tools will read',
+    description: 'Tell the AI what your project is about — it uses this every time you ask it to help',
   },
   {
     number: '3',
     title: 'Launch Tools',
-    description: 'Open AI terminals or orchestrate agent teams',
+    description: 'Open Claude Code or another AI assistant and start building',
   },
 ];
 
@@ -74,13 +74,16 @@ export default function HomePage() {
       <div className="p-6 flex flex-col gap-6 max-w-[900px] mx-auto w-full">
       {/* Workspace Selector */}
       <WorkspaceSelector onConnect={handleConnect} />
+      {!projectPath && (
+        <p className="text-[11px] text-zinc-600 mt-1 px-1">A workspace is the folder where your project lives. If you don't have a project yet, create an empty folder anywhere on your computer.</p>
+      )}
 
       {/* Welcome section (no workspace) */}
       {!projectPath && (
         <div className="bg-[#18181b] border border-[#27272a] rounded-xl p-8">
           <div className="flex items-center gap-2 mb-2">
             <Sparkles size={18} className="text-zinc-400" />
-            <h2 className="text-lg font-semibold text-zinc-100">Welcome to OmniAgent Studio</h2>
+            <h2 className="text-lg font-semibold text-zinc-100">Let's get you set up in 3 steps</h2>
           </div>
           <p className="text-[13px] text-zinc-400 leading-relaxed mb-6">
             Connect a project workspace to get started. This app helps you coordinate multiple AI coding tools with a shared context file.
@@ -106,7 +109,7 @@ export default function HomePage() {
             onClick={() => setIsHowToUseOpen(true)}
             className="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 rounded-lg text-xs font-semibold px-4 py-2 transition-colors"
           >
-            Learn More
+            Show me how →
           </button>
 
           <HowToUse isOpen={isHowToUseOpen} onClose={() => setIsHowToUseOpen(false)} />

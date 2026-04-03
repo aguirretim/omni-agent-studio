@@ -19,12 +19,12 @@ import StatusToast from '@/components/ui/StatusToast';
 import HowToUse from '@/components/layout/HowToUse';
 
 const navItems = [
-  { label: 'Home', icon: Home, route: '/' },
-  { label: 'Shared Context', icon: FileText, route: '/context' },
-  { label: 'AI Tools', icon: Terminal, route: '/tools' },
-  { label: 'Agent Teams', icon: Bot, route: '/agents' },
-  { label: 'Ralph', icon: RefreshCw, route: '/ralph' },
-  { label: 'Sessions', icon: FolderGit2, route: '/sessions' },
+  { label: 'Home', description: 'Start here', icon: Home, route: '/' },
+  { label: 'Shared Context', description: 'Tell AI about your project', icon: FileText, route: '/context' },
+  { label: 'AI Tools', description: 'Launch AI assistants', icon: Terminal, route: '/tools' },
+  { label: 'Agent Teams', description: 'Coordinate multiple AIs', icon: Bot, route: '/agents' },
+  { label: 'Ralph', description: 'Run tasks automatically', icon: RefreshCw, route: '/ralph' },
+  { label: 'Sessions', description: 'Save your progress', icon: FolderGit2, route: '/sessions' },
 ];
 
 function LayoutInner({ children }: { children: React.ReactNode }) {
@@ -97,14 +97,25 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
               <Link
                 key={item.route}
                 href={item.route}
-                className={`flex items-center gap-3 px-2 py-1.5 rounded-md transition-colors w-full text-left text-sm font-medium ${
+                className={`flex items-center gap-3 px-2 py-2 rounded-md transition-colors w-full text-left group ${
                   isActive
                     ? 'bg-zinc-800/50 text-zinc-200'
                     : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50'
                 }`}
               >
-                <Icon size={15} className={isActive ? 'text-zinc-400' : 'text-zinc-600'} />
-                {item.label}
+                <Icon size={15} className={`shrink-0 ${isActive ? 'text-zinc-400' : 'text-zinc-600'}`} />
+                <div className="flex flex-col min-w-0">
+                  <span className={`text-sm font-medium leading-tight ${isActive ? 'text-zinc-200' : 'text-zinc-500 group-hover:text-zinc-300'}`}>
+                    {item.label}
+                  </span>
+                  <span className={`text-[10px] leading-tight mt-0.5 transition-opacity ${
+                    isActive
+                      ? 'text-zinc-500 opacity-100'
+                      : 'text-zinc-600 opacity-0 group-hover:opacity-100'
+                  }`}>
+                    {item.description}
+                  </span>
+                </div>
               </Link>
             );
           })}
@@ -153,14 +164,14 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
                   value={audioVolume}
                   onChange={(e) => handleVolumeChange(Number(e.target.value))}
                   className="w-16 h-1 cursor-pointer accent-zinc-400"
-                  aria-label="Notification volume"
-                  title={`Volume: ${audioVolume}%`}
+                  aria-label="Volume for AI notification sounds"
+                  title={`Volume for AI notification sounds: ${audioVolume}%`}
                 />
               )}
               <button
                 onClick={toggleAudio}
                 className="p-1.5 text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 rounded-md transition-colors"
-                title={audioOn ? `Mute notifications (${audioVolume}%)` : 'Unmute notifications'}
+                title="Toggle audio notifications"
                 aria-label={audioOn ? 'Mute audio notifications' : 'Unmute audio notifications'}
                 aria-pressed={audioOn}
               >
@@ -170,7 +181,8 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
             <button
               onClick={() => setIsHowToUseOpen(true)}
               className="p-1.5 text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 rounded-md transition-colors"
-              title="How to Use"
+              title="How to use OmniAgent Studio (click for a guide)"
+              aria-label="Open help guide"
             >
               <HelpCircle size={16} />
             </button>

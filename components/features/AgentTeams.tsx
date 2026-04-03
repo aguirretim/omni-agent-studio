@@ -579,11 +579,20 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
 
                   {/* Task description */}
                   <div className="flex flex-col gap-1.5">
-                    <label htmlFor="task-plan" className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wider">Task / Plan</label>
+                    <div className="flex items-center justify-between">
+                      <label htmlFor="task-plan" className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wider">Task / Plan</label>
+                      <span className="text-[9px] text-zinc-700 font-mono" title="Press Ctrl+Enter to launch">Ctrl+Enter to launch</span>
+                    </div>
                     <textarea
                       id="task-plan"
                       value={plan}
                       onChange={e => setPlan(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && projectPath) {
+                          e.preventDefault();
+                          handleLaunch();
+                        }
+                      }}
                       rows={3}
                       placeholder="Describe what you want to build, fix, or improve… e.g. 'Add dark mode toggle to the settings page'"
                       className="w-full bg-[#121214] border border-[#27272a] rounded-lg px-3 py-2 text-xs text-zinc-300 placeholder:text-zinc-600 resize-none focus:outline-none focus:border-orange-500/40 focus:ring-1 focus:ring-orange-500/20 transition-colors"
@@ -646,6 +655,7 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
                   <button
                     onClick={handleLaunch}
                     disabled={!projectPath}
+                    title="Launch agent team (Ctrl+Enter)"
                     className="w-full py-2.5 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/30 hover:border-orange-500/50 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-orange-500/10"
                   >
                     <Play size={15} />
