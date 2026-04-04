@@ -950,96 +950,161 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
                     </p>
                   </div>
 
-                  {[
-                    {
-                      step: '1',
-                      title: 'Enable & Install Skills (once per project)',
-                      color: 'text-orange-400',
-                      body: (
-                        <>
-                          On the <strong className="text-zinc-200">Launch</strong> tab, click <strong className="text-zinc-200">Enable Feature</strong> — this writes <code className="text-orange-300">experimental.agentTeams: true</code> to <code className="text-zinc-300">~/.claude/settings.json</code>.
-                          Then click <strong className="text-zinc-200">Install All Skills</strong> — this writes all 10 slash commands into <code className="text-zinc-300">.claude/commands/</code> of your project, including <strong className="text-zinc-200">/build</strong>, <strong className="text-zinc-200">/build-hybrid</strong>, <strong className="text-zinc-200">/build-smart-delegate</strong>, <strong className="text-zinc-200">/fact-check</strong>, <strong className="text-zinc-200">/checkpoint</strong>, <strong className="text-zinc-200">/commit</strong>, <strong className="text-zinc-200">/review-pr</strong>, <strong className="text-zinc-200">/debug</strong>, <strong className="text-zinc-200">/test-gen</strong>, and <strong className="text-zinc-200">/explain</strong>.
-                        </>
-                      ),
-                    },
-                    {
-                      step: '2',
-                      title: 'Write a clear plan',
-                      color: 'text-blue-400',
-                      body: (
-                        <>
-                          Paste your plan in the textarea. Be specific: list each component, its tech stack, and what it depends on.
-                          Example: <em className="text-zinc-500">&ldquo;Build auth with: 1) PostgreSQL schema, 2) JWT API, 3) React forms&rdquo;</em>.
-                          The more detail you give, the smarter the team composition will be.
-                        </>
-                      ),
-                    },
-                    {
-                      step: '3',
-                      title: 'Launch → Contract-First Spawning',
-                      color: 'text-violet-400',
-                      body: (
-                        <>
-                          The lead agent analyzes your plan, identifies dependency chains, and spawns agents in the right order.
-                          It won&apos;t start the backend agent until the database agent emits its <strong className="text-zinc-200">contract</strong> (schema + types) — preventing agents from building on incorrect assumptions.
-                        </>
-                      ),
-                    },
-                    {
-                      step: '4',
-                      title: 'Agents collaborate via AGENT_TASKS.md',
-                      color: 'text-emerald-400',
-                      body: (
-                        <>
-                          The lead agent creates <code className="text-zinc-300">AGENT_TASKS.md</code> at your project root before any agents start. All agents read and update this file to track progress, announce contracts, and avoid stepping on each other&apos;s toes.
-                        </>
-                      ),
-                    },
-                    {
-                      step: '5',
-                      title: 'Hybrid teams — Claude leads, other tools assist',
-                      color: 'text-amber-400',
-                      body: (
-                        <>
-                          Claude is always the lead. But it can call <strong className="text-zinc-200">Gemini CLI</strong> as a bash subprocess for large-context codebase analysis (up to 1M tokens), and <strong className="text-zinc-200">OpenCode or Codex</strong> for generating isolated, fully-specified files. Claude reviews all specialist output before treating it as a contract — only Claude sub-agents can self-correct. The skill file teaches Claude exactly when and how to delegate to each tool.
-                        </>
-                      ),
-                    },
-                    {
-                      step: '6',
-                      title: '/fact-check — multi-model research & verification',
-                      color: 'text-sky-400',
-                      body: (
-                        <>
-                          Run <code className="text-sky-300">/fact-check [claim]</code> to have every available model research a claim <strong className="text-zinc-200">independently</strong> — preventing anchoring bias. Claude, Gemini, and Codex each write findings to temp files. Claude then cross-verifies them, flags contradictions, and saves a structured <code className="text-zinc-300">FACT_CHECK_[topic].md</code> report with confirmed findings, disputed claims, and what remains unresolved.
-                        </>
-                      ),
-                    },
-                    {
-                      step: '7',
-                      title: '/checkpoint — sync all context at any point',
-                      color: 'text-violet-400',
-                      body: (
-                        <>
-                          Run <code className="text-violet-300">/checkpoint</code> at any point — mid-session or end-of-session — to audit git changes, update the Session Log and Active Goals in <code className="text-zinc-300">.claude.md</code>, then mirror to <code className="text-zinc-300">.gemini.md</code> and <code className="text-zinc-300">agents.md</code>. Every AI tool that opens the folder next starts with a complete, accurate picture of where things stand.
-                        </>
-                      ),
-                    },
-                  ].map(({ step, title, color, body }) => (
-                    <div key={step} className="flex gap-3">
-                      <span className={`w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5 bg-zinc-800 ${color}`}>
-                        {step}
-                      </span>
-                      <div>
-                        <p className="text-[11px] font-semibold text-zinc-300 mb-1">{title}</p>
-                        <p className="text-[11px] leading-relaxed">{body}</p>
-                      </div>
+                  {/* ── Getting Started ── */}
+                  <div>
+                    <h4 className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider mb-3">Getting Started</h4>
+                    <div className="flex flex-col gap-3">
+                      {[
+                        {
+                          step: '1',
+                          title: 'Enable & Install Skills (once per project)',
+                          color: 'text-orange-400',
+                          body: (
+                            <>
+                              On the <strong className="text-zinc-200">Launch</strong> tab, click <strong className="text-zinc-200">Enable Feature</strong>, then <strong className="text-zinc-200">Install All Skills</strong>. This installs 10 slash commands into your project&apos;s <code className="text-zinc-300">.claude/commands/</code> folder — including the 3 build skills, plus <code className="text-orange-300">/fact-check</code>, <code className="text-orange-300">/checkpoint</code>, <code className="text-orange-300">/commit</code>, <code className="text-orange-300">/review-pr</code>, <code className="text-orange-300">/debug</code>, <code className="text-orange-300">/test-gen</code>, and <code className="text-orange-300">/explain</code>.
+                            </>
+                          ),
+                        },
+                        {
+                          step: '2',
+                          title: 'Write your plan, then launch',
+                          color: 'text-blue-400',
+                          body: (
+                            <>
+                              Type what you want built in the textarea. Be specific — list each piece, its tech, and what depends on what. Then click <strong className="text-zinc-200">Launch Agent Team</strong> or press <strong className="text-zinc-200">Ctrl+Enter</strong>. A terminal opens with Claude ready to go.
+                            </>
+                          ),
+                        },
+                        {
+                          step: '3',
+                          title: 'Choose a /build skill in the terminal',
+                          color: 'text-violet-400',
+                          body: (
+                            <>
+                              In the Claude terminal, type one of the 3 build skills below followed by your task. Each skill works differently — read the details below to pick the right one.
+                            </>
+                          ),
+                        },
+                      ].map(({ step, title, color, body }) => (
+                        <div key={step} className="flex gap-3">
+                          <span className={`w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5 bg-zinc-800 ${color}`}>
+                            {step}
+                          </span>
+                          <div>
+                            <p className="text-[11px] font-semibold text-zinc-300 mb-1">{title}</p>
+                            <p className="text-[11px] leading-relaxed">{body}</p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  </div>
+
+                  {/* ── The 3 Build Skills ── */}
+                  <div>
+                    <h4 className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider mb-3">The 3 Build Skills — Which One to Use</h4>
+                    <div className="flex flex-col gap-3">
+
+                      {/* /build-with-agent-team */}
+                      <div className="p-4 border border-orange-500/20 bg-orange-500/5 rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <code className="text-orange-400 font-bold text-xs">/build-with-agent-team</code>
+                          <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 font-semibold">Recommended</span>
+                        </div>
+                        <p className="text-[11px] font-semibold text-zinc-300 mb-1.5">Claude-only team — the most reliable option</p>
+                        <p className="text-[11px] leading-relaxed mb-2">
+                          Claude acts as the <strong className="text-zinc-200">lead orchestrator</strong>. It reads your plan, breaks it into phases, and spawns multiple Claude sub-agents — each responsible for one part (database, backend, frontend, etc.). Agents work in dependency order: the database agent finishes first, then the backend agent starts using its output, and so on.
+                        </p>
+                        <div className="text-[10px] space-y-1 ml-2">
+                          <p><strong className="text-zinc-400">Best for:</strong> Any task. Building features, fixing bugs, refactoring — this is the default, general-purpose skill.</p>
+                          <p><strong className="text-zinc-400">How it works:</strong> Creates <code className="text-zinc-500">AGENT_TASKS.md</code> to track progress. Each agent writes a &ldquo;contract&rdquo; (output file) that downstream agents depend on. Auto-selects quality skills (<code className="text-zinc-500">/review-pr</code>, <code className="text-zinc-500">/test-gen</code>) based on your task description.</p>
+                          <p><strong className="text-zinc-400">Example:</strong> <code className="text-zinc-500">/build-with-agent-team Add user authentication with PostgreSQL, JWT tokens, and a React login form</code></p>
+                        </div>
+                      </div>
+
+                      {/* /build-hybrid-team */}
+                      <div className="p-4 border border-blue-500/20 bg-blue-500/5 rounded-lg">
+                        <code className="text-blue-400 font-bold text-xs block mb-2">/build-hybrid-team</code>
+                        <p className="text-[11px] font-semibold text-zinc-300 mb-1.5">Claude + Gemini + Codex — multi-tool team</p>
+                        <p className="text-[11px] leading-relaxed mb-2">
+                          Like <code className="text-zinc-500">/build-with-agent-team</code>, but Claude can <strong className="text-zinc-200">delegate specific jobs</strong> to other AI tools installed on your machine. Gemini CLI handles large-context analysis (up to 1M tokens — great for scanning an entire codebase at once). OpenCode or Codex handle isolated file generation tasks. Claude reviews all output before using it.
+                        </p>
+                        <div className="text-[10px] space-y-1 ml-2">
+                          <p><strong className="text-zinc-400">Best for:</strong> Large codebases where you need Gemini&apos;s 1M-token context, or when you want to reduce Claude API costs by offloading simple generation to other models.</p>
+                          <p><strong className="text-zinc-400">Requires:</strong> At least one other tool installed (Gemini, OpenCode, or Codex). Install them from the <strong className="text-zinc-400">AI Tools</strong> page.</p>
+                          <p><strong className="text-zinc-400">Example:</strong> <code className="text-zinc-500">/build-hybrid-team Analyze this legacy codebase and refactor the auth module to use OAuth2</code></p>
+                        </div>
+                      </div>
+
+                      {/* /build-smart-delegate */}
+                      <div className="p-4 border border-violet-500/20 bg-violet-500/5 rounded-lg">
+                        <code className="text-violet-400 font-bold text-xs block mb-2">/build-smart-delegate</code>
+                        <p className="text-[11px] font-semibold text-zinc-300 mb-1.5">Auto-router — picks the cheapest available strategy</p>
+                        <p className="text-[11px] leading-relaxed mb-2">
+                          Before doing any work, this skill <strong className="text-zinc-200">probes every AI tool</strong> on your machine (Claude, Gemini, Codex, OpenCode) to check what&apos;s actually installed and authenticated. Then it automatically picks the most cost-efficient strategy: if Gemini is available, it routes large-context analysis there instead of burning Claude tokens. If only Claude is available, it falls back to a Claude-only team.
+                        </p>
+                        <div className="text-[10px] space-y-1 ml-2">
+                          <p><strong className="text-zinc-400">Best for:</strong> When you have multiple tools installed and want the AI to automatically decide which tool handles which part — optimising for cost without you having to think about it.</p>
+                          <p><strong className="text-zinc-400">Strategies it can pick:</strong> Gemini-leads (cheapest), Hybrid, Specialist-led, or Claude-only (fallback).</p>
+                          <p><strong className="text-zinc-400">Example:</strong> <code className="text-zinc-500">/build-smart-delegate Add a dark mode toggle to the settings page</code></p>
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+
+                  {/* ── Other Skills ── */}
+                  <div>
+                    <h4 className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider mb-3">Other Useful Skills</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {[
+                        { skill: '/fact-check', color: 'text-sky-400', desc: 'Has every available model research a claim independently, then cross-verifies findings and flags contradictions. Produces a structured report.' },
+                        { skill: '/checkpoint', color: 'text-violet-400', desc: 'Audits git changes and syncs the Session Log across .claude.md, .gemini.md, and agents.md so every tool starts with current context.' },
+                        { skill: '/commit', color: 'text-emerald-400', desc: 'Creates a conventional commit with a well-formatted message. Checks staged changes and writes the commit for you.' },
+                        { skill: '/review-pr', color: 'text-amber-400', desc: 'Reviews your code changes like a senior engineer — checks for bugs, security issues, performance, and style before committing.' },
+                        { skill: '/debug', color: 'text-red-400', desc: 'Systematically diagnoses a bug: reproduces, isolates root cause, proposes and verifies a fix.' },
+                        { skill: '/test-gen', color: 'text-green-400', desc: 'Generates tests for your code — unit tests, integration tests, or edge cases. Matches your project\'s existing test framework.' },
+                        { skill: '/explain', color: 'text-blue-300', desc: 'Explains how a piece of code works in plain language. Walks through the logic step by step.' },
+                      ].map(({ skill, color, desc }) => (
+                        <div key={skill} className="p-2.5 border border-[var(--c-border)] bg-[var(--c-inset)] rounded-lg">
+                          <code className={`${color} font-bold text-[10px]`}>{skill}</code>
+                          <p className="text-[10px] leading-relaxed mt-1">{desc}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* ── How the agents stay in sync ── */}
+                  <div>
+                    <h4 className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider mb-3">How Agents Stay in Sync</h4>
+                    <div className="flex flex-col gap-3">
+                      {[
+                        {
+                          title: 'Contract-first spawning',
+                          body: 'Agents are spawned in dependency order. The lead agent won\'t start the backend agent until the database agent has written its output file (called a "contract"). This prevents agents from building on guesswork.',
+                        },
+                        {
+                          title: 'Shared task tracker',
+                          body: 'The lead agent creates AGENT_TASKS.md at your project root before any work begins. Every agent reads and updates this file to track progress, announce when their contract is ready, and avoid conflicts.',
+                        },
+                        {
+                          title: 'Shared context file',
+                          body: 'All agents read .claude.md at startup to understand the project, tech stack, and what was done in prior sessions. After finishing, the lead agent updates the Session Log so the next session picks up where this one left off.',
+                        },
+                      ].map(({ title, body }) => (
+                        <div key={title} className="flex gap-3">
+                          <span className="w-1.5 h-1.5 rounded-full bg-orange-400 shrink-0 mt-1.5" />
+                          <div>
+                            <p className="text-[11px] font-semibold text-zinc-300 mb-0.5">{title}</p>
+                            <p className="text-[11px] leading-relaxed">{body}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
 
                   <div className="p-3 bg-[var(--c-inset)] border border-zinc-800 rounded-lg">
                     <p className="text-[10px] text-zinc-600 leading-relaxed">
-                      <strong className="text-zinc-400">Pro tip:</strong> Launch an interactive Claude Code terminal from the <strong className="text-zinc-500">AI Tools</strong> page first, explore the codebase, then paste a specific, detailed plan into Agent Teams. The more concrete your plan, the better the team composition.
+                      <strong className="text-zinc-400">Pro tip:</strong> Not sure which skill to pick? Start with <code className="text-orange-400">/build-with-agent-team</code> — it works for everything. Only switch to <code className="text-blue-400">/build-hybrid-team</code> if you have a large codebase and Gemini installed, or <code className="text-violet-400">/build-smart-delegate</code> if you want the AI to optimise costs automatically.
                     </p>
                   </div>
                 </div>

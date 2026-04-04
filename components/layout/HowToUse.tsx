@@ -1,6 +1,6 @@
 'use client';
 
-import { X, Bot, Terminal, FolderGit2, Users, Play, Monitor } from 'lucide-react';
+import { X, Bot, Terminal, FolderGit2, Users, Play, Monitor, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useRef } from 'react';
 
@@ -175,6 +175,40 @@ export default function HowToUse({ isOpen, onClose }: HowToUseProps) {
                   <p className="text-[12px] text-zinc-400 leading-relaxed">
                     On Windows, each assistant can appear in its own visible terminal pane if you have <strong className="text-zinc-200">WSL</strong> and <strong className="text-zinc-200">tmux</strong> installed. Go to the <strong className="text-orange-400">Agent Teams &rarr; Split-Pane Setup</strong> tab for a one-click installer that handles everything automatically.
                   </p>
+                </div>
+              </section>
+
+              {/* Troubleshooting */}
+              <section>
+                <h3 className="text-lg font-medium text-zinc-100 mb-3 border-b border-zinc-800 pb-2 flex items-center gap-2">
+                  <AlertTriangle size={16} className="text-yellow-400" />
+                  Troubleshooting
+                </h3>
+
+                <div className="space-y-4">
+                  <div className="p-4 border border-[var(--c-border)] bg-[var(--c-inset)] rounded-lg">
+                    <p className="text-xs text-zinc-300 font-semibold mb-2">Claude Code won&apos;t start or login is broken</p>
+                    <p className="text-[12px] text-zinc-400 leading-relaxed mb-2">
+                      Double-click <code className="text-emerald-300">reset.bat</code> in the app folder. It removes your Claude Code config and reinstalls it cleanly. You will need to run <code className="text-zinc-300">claude login</code> again afterward.
+                    </p>
+                    <p className="text-[11px] text-zinc-600 leading-relaxed">
+                      Do <strong>not</strong> try to delete folders manually with <code>rmdir</code> in PowerShell &mdash; that command uses different syntax in PowerShell vs CMD and will show errors. Use <code className="text-emerald-300">reset.bat</code> instead.
+                    </p>
+                  </div>
+
+                  <div className="p-4 border border-[var(--c-border)] bg-[var(--c-inset)] rounded-lg">
+                    <p className="text-xs text-zinc-300 font-semibold mb-2">Terminal opens but the AI tool is missing</p>
+                    <p className="text-[12px] text-zinc-400 leading-relaxed">
+                      The app auto-installs missing tools when you launch them. If that fails, open any terminal and run: <code className="text-zinc-300">npm install -g @anthropic-ai/claude-code</code> (for Claude Code), then try again.
+                    </p>
+                  </div>
+
+                  <div className="p-4 border border-[var(--c-border)] bg-[var(--c-inset)] rounded-lg">
+                    <p className="text-xs text-zinc-300 font-semibold mb-2">App won&apos;t start at all</p>
+                    <p className="text-[12px] text-zinc-400 leading-relaxed">
+                      Make sure <strong className="text-zinc-200">Node.js 18+</strong> is installed, then double-click <code className="text-emerald-300">run.bat</code>. It handles everything automatically &mdash; including installing Node.js and Git if needed.
+                    </p>
+                  </div>
                 </div>
               </section>
 
