@@ -4520,6 +4520,38 @@ export async function POST(req: NextRequest) {
         ? `/build-with-agent-team ${safePlan}${agentFlag}`
         : null;
 
+      // ── Worktree isolation ──────────────────────────────────────────────────
+      // Pre-create N isolated git worktrees so agents work in parallel branches
+      // with no file conflicts. Falls back silently if not a git repo.
+      const wtCount = safeAgentCount ?? 3; // default 3 for auto-mode
+      const wtTs = Date.now().toString(36); // short unique id for this session
+      const useWorktrees = wtCount > 1;
+
+      if (useWorktrees) {
+        // Write the assignment manifest from Node.js before the terminal opens
+        const rows = Array.from({ length: wtCount }, (_, i) =>
+          `| Agent ${i + 1} | .worktrees/agent-${i + 1} | omni/session/${wtTs}-${i + 1} |`
+        ).join('\n');
+        const wtMd = [
+          '# Active Agent Worktrees',
+          '',
+          'Created by OmniAgent Studio. Each sub-agent must `cd` into their assigned worktree',
+          'before editing any files. The lead orchestrator stays in the main repo root.',
+          '',
+          '| Agent | Worktree | Branch |',
+          '|-------|----------|--------|',
+          rows,
+          '',
+          'When agents complete, review each branch then merge the best solution:',
+          '```',
+          'git worktree list',
+          `git merge omni/session/${wtTs}-1   # merge whichever agent\'s branch wins`,
+          `git worktree remove .worktrees/agent-1  # clean up`,
+          '```',
+        ].join('\n');
+        try { fs.writeFileSync(path.join(projectPath, '.omni-worktrees.md'), wtMd, 'utf8'); } catch {}
+      }
+
       const { execSync } = await import('child_process');
 
       // ── Helper: Windows path → WSL mount path ───────────────────────────
@@ -4535,6 +4567,11 @@ export async function POST(req: NextRequest) {
 
       if (safeTerminalType === 'auto' || safeTerminalType === 'wt-tmux' || safeTerminalType === 'wt-ps') {
         try { execSync('where wt', { stdio: 'pipe', timeout: 3000 }); hasWindowsTerminal = true; } catch {}
+        // Fallback: Node.js server process may not have WindowsApps in PATH — check directly
+        if (!hasWindowsTerminal && process.env.LOCALAPPDATA) {
+          const wtPath = path.join(process.env.LOCALAPPDATA, 'Microsoft', 'WindowsApps', 'wt.exe');
+          if (fs.existsSync(wtPath)) hasWindowsTerminal = true;
+        }
       }
       if (safeTerminalType === 'auto' || safeTerminalType === 'wt-tmux') {
         try {
@@ -4580,6 +4617,18 @@ export async function POST(req: NextRequest) {
           `SESSION="${SESSION}-$$"`,
           'tmux kill-session -t "$SESSION" 2>/dev/null',
           '',
+          // ── Worktree isolation: create N git branches before agents start ──
+          ...(useWorktrees ? [
+            `# Create ${wtCount} isolated worktrees so agents have no file conflicts`,
+            `if git -C '${safeWslProject}' rev-parse --git-dir > /dev/null 2>&1; then`,
+            `  for i in $(seq 1 ${wtCount}); do`,
+            `    git -C '${safeWslProject}' worktree add '${safeWslProject}/.worktrees/agent-'$i -b 'omni/session/${wtTs}-'$i 2>/dev/null || \\`,
+            `    git -C '${safeWslProject}' worktree add '${safeWslProject}/.worktrees/agent-'$i 2>/dev/null || true`,
+            '  done',
+            `  printf '\\033[36m[OmniAgent] ${wtCount} worktrees ready — see .omni-worktrees.md\\033[0m\\n'`,
+            'fi',
+            '',
+          ] : []),
           // Fix: pass CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 via -e so it reaches the
           // tmux session even when a tmux server is already running from a different
           // parent process (which would not inherit exported vars from this script).
@@ -4609,14 +4658,21 @@ export async function POST(req: NextRequest) {
         ];
 
         if (buildCmd) {
+          // Prepend worktree assignment note so orchestrator knows about worktrees
+          const wtPrefix = useWorktrees
+            ? `Worktrees active — read .omni-worktrees.md for agent assignments. `.replace(/'/g, `'"'"'`)
+            : '';
           lines.push(
             '(',
             '  sleep 6',
-            `  tmux send-keys -t "$SESSION" '/build-with-agent-team ${safePlan}${agentFlag}' Enter`,
+            `  tmux send-keys -t "$SESSION" '/build-with-agent-team ${wtPrefix}${safePlan}${agentFlag}' Enter`,
             ') &',
           );
         } else {
-          lines.push('echo "[AgentTeams] Claude ready -- type /build-with-agent-team [plan]"');
+          const wtReadyMsg = useWorktrees
+            ? `[OmniAgent] Claude ready — ${wtCount} worktrees at .worktrees/ — type /build-with-agent-team [plan]`
+            : '[AgentTeams] Claude ready -- type /build-with-agent-team [plan]';
+          lines.push(`echo "${wtReadyMsg}"`);
         }
 
         lines.push(
@@ -4644,7 +4700,7 @@ export async function POST(req: NextRequest) {
         const windowTitle = path.basename(projectPath);
         const wtBat1Lines = [
           '@echo off',
-          `start "" "shell:AppsFolder\\Microsoft.WindowsTerminal_8wekyb3d8bbwe!App" --title "${windowTitle}" wsl.exe bash "${scriptWslPath}"`,
+          `start "" "%LOCALAPPDATA%\\Microsoft\\WindowsApps\\wt.exe" --title "${windowTitle}" wsl.exe bash "${scriptWslPath}"`,
         ];
         const wtBat1Path = path.join(projectPath, '.omni-wt-launch.bat');
         fs.writeFileSync(wtBat1Path, wtBat1Lines.join('\r\n'), { encoding: 'utf8' });
@@ -4657,15 +4713,30 @@ export async function POST(req: NextRequest) {
       // ── Tier 2: PowerShell — works everywhere, right-click + scroll native ──
       // Claude runs in-process mode: teammates appear inline in the same
       // terminal.  Use Shift+Down to cycle between teammates.
+      const safePs1Proj = projectPath.replace(/'/g, "''");
       const ps1Lines = [
         `$env:PATH = [System.Environment]::GetEnvironmentVariable('PATH','User') + ';' + [System.Environment]::GetEnvironmentVariable('PATH','Machine')`,
-        `Set-Location '${projectPath.replace(/'/g, "''")}'`,
+        `Set-Location '${safePs1Proj}'`,
         `$env:CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = '1'`,
+        // ── Worktree isolation ──────────────────────────────────────────────
+        ...(useWorktrees ? [
+          `$wtGit = $null -ne (git -C '${safePs1Proj}' rev-parse --git-dir 2>$null)`,
+          `if ($wtGit) {`,
+          `  1..${wtCount} | ForEach-Object {`,
+          `    $i = $_`,
+          `    $wtPath = '${safePs1Proj}' + '\\.worktrees\\agent-' + $i`,
+          `    $wtBranch = 'omni/session/${wtTs}-' + $i`,
+          `    git -C '${safePs1Proj}' worktree add $wtPath -b $wtBranch 2>$null`,
+          `  }`,
+          `  Write-Host '[OmniAgent] ${wtCount} worktrees ready — see .omni-worktrees.md' -ForegroundColor Cyan`,
+          `}`,
+        ] : []),
       ];
       if (buildCmd) {
+        const wtHint = useWorktrees ? ` (${wtCount} worktrees active — see .omni-worktrees.md)` : '';
         ps1Lines.push(
           `Write-Host ''`,
-          `Write-Host '[AgentTeams] Ready - type: ${buildCmd.replace(/[<>'"`]/g, '')}' -ForegroundColor Cyan`,
+          `Write-Host '[AgentTeams] Ready - type: ${buildCmd.replace(/[<>'"`]/g, '')}${wtHint}' -ForegroundColor Cyan`,
           `Write-Host ''`,
         );
       }
@@ -4678,7 +4749,7 @@ export async function POST(req: NextRequest) {
         // Launch WT via UWP App ID for proper Explorer-lineage drag-drop support
         const wtBat2Lines = [
           '@echo off',
-          `start "" "shell:AppsFolder\\Microsoft.WindowsTerminal_8wekyb3d8bbwe!App" --title "${path.basename(projectPath)}" -- powershell -NoExit -ExecutionPolicy Bypass -File "${ps1Path}"`,
+          `start "" "%LOCALAPPDATA%\\Microsoft\\WindowsApps\\wt.exe" --title "${path.basename(projectPath)}" -- powershell -NoExit -ExecutionPolicy Bypass -File "${ps1Path}"`,
         ];
         const wtBat2Path = path.join(projectPath, '.omni-wt-launch.bat');
         fs.writeFileSync(wtBat2Path, wtBat2Lines.join('\r\n'), { encoding: 'utf8' });
@@ -4711,7 +4782,7 @@ export async function POST(req: NextRequest) {
       const ALLOWED_PROVIDERS = ['openai', 'gemini', 'deepseek', 'ollama', 'github'] as const;
       type OcProvider = typeof ALLOWED_PROVIDERS[number];
       const rawProvider = body.provider as string;
-      const provider: OcProvider = ALLOWED_PROVIDERS.includes(rawProvider as OcProvider) ? (rawProvider as OcProvider) : 'openai';
+      const provider: OcProvider = ALLOWED_PROVIDERS.includes(rawProvider as OcProvider) ? (rawProvider as OcProvider) : 'gemini';
 
       // Provider-specific PowerShell env var lines
       const providerEnv: Record<OcProvider, string[]> = {
@@ -4719,6 +4790,10 @@ export async function POST(req: NextRequest) {
           `$env:CLAUDE_CODE_USE_OPENAI = '1'`,
         ],
         gemini: [
+          `Remove-Item Env:CLAUDE_CODE_USE_OPENAI -ErrorAction SilentlyContinue`,
+          `Remove-Item Env:OPENAI_BASE_URL -ErrorAction SilentlyContinue`,
+          `Remove-Item Env:OPENAI_MODEL -ErrorAction SilentlyContinue`,
+          `Remove-Item Env:OPENAI_API_KEY -ErrorAction SilentlyContinue`,
           // Gemini auth is handled interactively via /provider inside openclaude
         ],
         deepseek: [
@@ -4729,9 +4804,15 @@ export async function POST(req: NextRequest) {
         ollama: [
           `$env:CLAUDE_CODE_USE_OPENAI = '1'`,
           `$env:OPENAI_BASE_URL = 'http://localhost:11434/v1'`,
-          `$env:OPENAI_MODEL = 'llama3'`,
+          `# Detect first installed Ollama model; fall back to qwen2.5-coder:7b`,
+          `$_ollamaModel = (& ollama list 2>$null | Select-Object -Skip 1 | Where-Object { $_ -match ':' } | Select-Object -First 1 | ForEach-Object { ($_ -split '\s+')[0] })`,
+          `if ($_ollamaModel) { $env:OPENAI_MODEL = $_ollamaModel } else { $env:OPENAI_MODEL = 'qwen2.5-coder:7b' }`,
         ],
         github: [
+          `Remove-Item Env:CLAUDE_CODE_USE_OPENAI -ErrorAction SilentlyContinue`,
+          `Remove-Item Env:OPENAI_BASE_URL -ErrorAction SilentlyContinue`,
+          `Remove-Item Env:OPENAI_MODEL -ErrorAction SilentlyContinue`,
+          `Remove-Item Env:OPENAI_API_KEY -ErrorAction SilentlyContinue`,
           // GitHub Models: use /onboard-github inside openclaude to configure
         ],
       };
@@ -4743,7 +4824,12 @@ export async function POST(req: NextRequest) {
         ...providerEnv[provider],
         `Write-Host ''`,
         `Write-Host '[OpenClaude] Provider: ${provider}' -ForegroundColor Magenta`,
-        `Write-Host '[OpenClaude] Use /provider inside to configure credentials.' -ForegroundColor DarkGray`,
+        `if ('${provider}' -eq 'ollama') {`,
+        `  Write-Host "[OpenClaude] Model: $env:OPENAI_MODEL  |  API: $env:OPENAI_BASE_URL" -ForegroundColor Cyan`,
+        `  Write-Host '[OpenClaude] Provider is pre-configured via env vars. No need to run /provider.' -ForegroundColor DarkGray`,
+        `} else {`,
+        `  Write-Host '[OpenClaude] Use /provider inside to configure credentials if needed.' -ForegroundColor DarkGray`,
+        `}`,
         `Write-Host ''`,
         `openclaude`,
       ];
@@ -4754,12 +4840,17 @@ export async function POST(req: NextRequest) {
       const { execSync: esOc } = await import('child_process');
       let hasWt = false;
       try { esOc('where wt', { stdio: 'pipe', timeout: 3000 }); hasWt = true; } catch {}
+      // Fallback: Node.js server process may not have WindowsApps in PATH — check directly
+      if (!hasWt && process.env.LOCALAPPDATA) {
+        const wtPath = path.join(process.env.LOCALAPPDATA, 'Microsoft', 'WindowsApps', 'wt.exe');
+        if (fs.existsSync(wtPath)) hasWt = true;
+      }
 
       if (hasWt) {
-        // Launch WT via UWP App ID for Explorer-lineage drag-drop support
+        // Launch WT directly via known install path so arguments are passed correctly
         const wtOcBatLines = [
           '@echo off',
-          `start "" "shell:AppsFolder\\Microsoft.WindowsTerminal_8wekyb3d8bbwe!App" --title "OpenClaude - ${provider}" -- powershell -NoExit -ExecutionPolicy Bypass -File "${ps1Path}"`,
+          `start "" "%LOCALAPPDATA%\\Microsoft\\WindowsApps\\wt.exe" --title "OpenClaude - ${provider}" -- powershell -NoExit -ExecutionPolicy Bypass -File "${ps1Path}"`,
         ];
         const wtOcBatPath = path.join(projectPath, '.omni-wt-launch.bat');
         fs.writeFileSync(wtOcBatPath, wtOcBatLines.join('\r\n'), { encoding: 'utf8' });
