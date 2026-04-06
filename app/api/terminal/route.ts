@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     const isWindows = os.platform() === 'win32';
 
     // Safety list of allowed commands
-    const allowedCommands = ['claude', 'gemini', 'opencode', 'codex', 'openclaude'];
+    const allowedCommands = ['claude', 'gemini', 'opencode', 'codex', 'openclaude', 'ollama'];
     if (!allowedCommands.includes(command)) {
        return NextResponse.json({ error: 'Command not in whitelist' }, { status: 403 });
     }
@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
         opencode: 'npm install -g opencode-ai',
         codex: 'npm install -g @openai/codex',
         openclaude: 'npm install -g @gitlawb/openclaude',
+        ollama: 'winget install Ollama.Ollama',
       };
       const binaryName: Record<string, string> = {
         claude: 'claude',
@@ -52,10 +53,53 @@ export async function POST(req: NextRequest) {
         opencode: 'opencode',
         codex: 'codex',
         openclaude: 'openclaude',
+        ollama: 'ollama',
       };
-
       const installCmd = installCommands[command];
       const bin = binaryName[command] || command;
+      const launchCmd = `${bin}${command === 'claude' ? ' --dangerously-skip-permissions' : ''}`;
+
+      // Full custom bat/ps1 scripts for tools that need more than a single launch line.
+      // Each entry is the complete list of lines written to the script file.
+      const batScriptOverride: Record<string, string[]> = {
+        ollama: [
+          '@echo off',
+          `cd /d "${resolvedPath}"`,
+          `where ollama >nul 2>nul || (echo Ollama not found. Download from https://ollama.com/download && pause && exit /b 1)`,
+          `echo Checking for installed Ollama models...`,
+          `ollama list 2>nul | find ":" >nul 2>nul`,
+          `if errorlevel 1 (`,
+          `  echo No models installed. Pulling qwen2.5-coder:7b ^(~4 GB, recommended for coding^)...`,
+          `  echo Press Ctrl+C to cancel and pull a different model manually instead.`,
+          `  echo.`,
+          `  ollama pull qwen2.5-coder:7b`,
+          `)`,
+          `echo.`,
+          `echo Starting Ollama API server on http://localhost:11434 ...`,
+          `ollama serve`,
+        ],
+      };
+
+      const psScriptOverride: Record<string, string[]> = {
+        ollama: [
+          `Set-Location "${resolvedPath}"`,
+          `if (-not (Get-Command 'ollama' -ErrorAction SilentlyContinue)) {`,
+          `  Write-Host "Ollama not found. Download from https://ollama.com/download"`,
+          `  Read-Host "Press Enter to exit"`,
+          `  exit 1`,
+          `}`,
+          `Write-Host "Checking for installed Ollama models..."`,
+          `$models = & ollama list 2>$null | Select-Object -Skip 1 | Where-Object { $_ -match ':' }`,
+          `if (-not $models) {`,
+          `  Write-Host "No models installed. Pulling qwen2.5-coder:7b (~4 GB, recommended for coding)..."`,
+          `  Write-Host "Press Ctrl+C to cancel and pull a different model manually instead."`,
+          `  & ollama pull qwen2.5-coder:7b`,
+          `}`,
+          `Write-Host ""`,
+          `Write-Host "Starting Ollama API server on http://localhost:11434 ..."`,
+          `& ollama serve`,
+        ],
+      };
 
       // Resolve system paths so we never rely on PATH inside spawn
       const sysRoot = process.env.SystemRoot || 'C:\\Windows';
@@ -63,20 +107,17 @@ export async function POST(req: NextRequest) {
       const cmdExe     = path.join(sysRoot, 'System32', 'cmd.exe');
       const psExe      = path.join(sysRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
 
-      // Claude always gets --dangerously-skip-permissions so it never pauses for prompts
-      const claudeFlags = command === 'claude' ? ' --dangerously-skip-permissions' : '';
-
       let child;
 
       if (terminalType === 'powershell') {
         // Write a .ps1 launcher — resolvedPath written as a literal string value (no shell interpolation)
-        const psLines = [
+        const psLines = psScriptOverride[command] ?? [
           `Set-Location "${resolvedPath}"`,
           `if (-not (Get-Command '${bin}' -ErrorAction SilentlyContinue)) {`,
           `  Write-Host "${command} is not installed. Auto-installing..."`,
           `  ${installCmd}`,
           `}`,
-          `& '${bin}'${claudeFlags}`,
+          launchCmd,
         ];
         const ps1Path = path.join(resolvedPath, '.omni-launch.ps1');
         fs.writeFileSync(ps1Path, psLines.join('\r\n'), { encoding: 'utf8' });
@@ -100,11 +141,11 @@ export async function POST(req: NextRequest) {
       } else {
         // Write a .bat intermediary so resolvedPath is never interpolated into
         // a shell command string — it is written into the file as a quoted value (C2)
-        const batLines = [
+        const batLines = batScriptOverride[command] ?? [
           '@echo off',
           `cd /d "${resolvedPath}"`,
           `where ${bin} >nul 2>nul || (echo ${command} is not installed. Auto-installing... && ${installCmd})`,
-          `${bin}${claudeFlags}`,
+          launchCmd,
         ];
         const batPath = path.join(resolvedPath, '.omni-launch.bat');
         fs.writeFileSync(batPath, batLines.join('\r\n'), { encoding: 'utf8' });

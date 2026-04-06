@@ -73,6 +73,19 @@ const tools = [
     tags: ['Any LLM provider', 'Ollama (local / free)', 'DeepSeek', 'GitHub Models', 'Cost optimisation'],
     billingUrl: 'https://github.com/Gitlawb/openclaude',
   },
+  {
+    id: 'ollama',
+    name: 'Ollama',
+    command: 'ollama',
+    icon: 'LM',
+    color: 'text-teal-400',
+    bgColor: 'bg-teal-400/10',
+    hoverBorder: 'hover:border-teal-500/50',
+    description: 'Run LLMs locally — no API key, no internet',
+    detail: "Starts the Ollama local model server on port 11434. On first launch, automatically pulls qwen2.5-coder:7b (~4 GB) if no models are installed — just press Enter to accept or Ctrl+C to pull a different model. Once running, point OpenClaude at http://localhost:11434 to run agentic coding workflows completely offline and for free.",
+    tags: ['100% local', 'No API key', 'OpenAI-compatible API', 'Llama / Mistral / Qwen', 'Works with OpenClaude'],
+    billingUrl: 'https://ollama.com/library',
+  },
 ];
 
 export default function ToolsPage() {
