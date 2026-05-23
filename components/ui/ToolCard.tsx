@@ -24,6 +24,7 @@ const chipStyle: Record<string, string> = {
   'text-zinc-300':   'bg-zinc-700/30 border-zinc-600/30 text-zinc-400',
   'text-purple-400': 'bg-purple-500/10 border-purple-500/20 text-purple-400',
   'text-teal-400':   'bg-teal-500/10 border-teal-500/20 text-teal-400',
+  'text-violet-400': 'bg-violet-500/10 border-violet-500/20 text-violet-400',
 };
 
 export default function ToolCard({
@@ -47,11 +48,16 @@ export default function ToolCard({
     }
     try {
       setSyncStatus(`Launching tool: ${command}`);
-      await fetch('/api/terminal', {
+      const res = await fetch('/api/terminal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ command, projectPath, terminalType }),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: 'Unknown error' }));
+        setSyncStatus(`Failed: ${data.error || res.statusText}`);
+        return;
+      }
       setSyncStatus(`${command} online`);
     } catch {
       setSyncStatus(`Failed launching ${command}`);

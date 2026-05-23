@@ -62,7 +62,7 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
   const [agentCount, setAgentCount] = useState<number | 'auto'>('auto');
   const [plan, setPlan] = useState('');
   const [terminalType, setTerminalType] = useState<'auto' | 'wt-tmux' | 'wt-ps' | 'cmd-ps'>('auto');
-  const [openclaudeProvider, setOpenclaudeProvider] = useState<'openai' | 'gemini' | 'deepseek' | 'ollama' | 'github'>('openai');
+  const [openclaudeProvider, setOpenclaudeProvider] = useState<'codex' | 'gemini' | 'deepseek' | 'ollama' | 'github'>('gemini');
   const [isLaunchingOc, setIsLaunchingOc] = useState(false);
 
   const suggestedSkills = useMemo(() => {
@@ -675,7 +675,9 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
                     Opens Claude Code in PowerShell. Tell Claude your task and it spawns teammates inline. Use Shift+Down to cycle between them. Right-click and scroll work normally.
                     {wslStatus?.tmuxInstalled && wslStatus?.claudeInWsl && (
                       <> In split-pane mode: <strong className="text-zinc-400">right-click</strong> pastes from clipboard, <strong className="text-zinc-400">scroll</strong> works normally. To reference a file: in Explorer, <strong className="text-zinc-400">Shift+Right-click → Copy as path</strong>, then press <strong className="text-zinc-400">F5</strong> — the path is auto-converted to WSL format and pasted as an <strong className="text-zinc-400">@reference</strong>.</>
-
+                    )}
+                    {agentCount !== 1 && (
+                      <> <strong className="text-zinc-400">Worktree mode:</strong> {agentCount === 'auto' ? '3' : agentCount} isolated git branches are pre-created so agents never conflict on the same files. See <code className="text-zinc-500">.omni-worktrees.md</code> for assignments after launch.</>
                     )}
                   </p>
 
@@ -719,14 +721,11 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
                       <span className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wider">Other LLMs via OpenClaude</span>
                       <span className="text-[9px] text-zinc-700 font-mono">@gitlawb/openclaude</span>
                     </div>
-                    <p className="text-[10px] text-zinc-600 leading-relaxed">
-                      OpenClaude brings Claude Code-style agentic workflows to any LLM provider. Launch a separate instance alongside your Claude team for cost optimisation, local models (Ollama), or provider redundancy.
-                    </p>
                     <div className="flex flex-col gap-1.5">
                       <span id="oc-provider-label" className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wider">Provider</span>
                       <div role="group" aria-labelledby="oc-provider-label" className="flex items-center gap-1 flex-wrap">
                         {([
-                          { value: 'openai',   label: 'OpenAI' },
+                          { value: 'codex',    label: 'Codex' },
                           { value: 'gemini',   label: 'Gemini' },
                           { value: 'deepseek', label: 'DeepSeek' },
                           { value: 'ollama',   label: 'Ollama' },
@@ -745,19 +744,37 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
                         ))}
                       </div>
                     </div>
+
+                    <p className="text-[10px] text-zinc-600 leading-relaxed">
+                      OpenClaude brings Claude Code-style agentic workflows to other providers. Pick a provider, reuse the same task details from above, and launch a second agent terminal that preloads your project context plus the full installed skill library from <code className="text-zinc-500">.claude/commands/</code>.
+                    </p>
+
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wider">Shared Task / Skills Context</span>
+                      <div className="rounded-lg border border-purple-500/20 bg-purple-500/5 px-3 py-2 text-[11px] text-zinc-400 leading-relaxed">
+                        OpenClaude launches with your current <strong className="text-zinc-300">Task / Plan</strong> and a skills brief generated from every installed slash command so it sees the same general task details as <strong className="text-zinc-300">Launch Agent Team</strong>.
+                      </div>
+                    </div>
+
                     {openclaudeProvider === 'ollama' && (
                       <p className="text-[10px] text-zinc-600 leading-relaxed">
-                        Ollama must be running locally on port 11434. OpenClaude will connect to <code className="text-zinc-500">http://localhost:11434/v1</code> using the <code className="text-zinc-500">llama3</code> model by default. Use <code className="text-zinc-500">/provider</code> inside OpenClaude to change the model.
+                        Ollama must be running locally on port 11434. OpenClaude will connect to <code className="text-zinc-500">http://localhost:11434/v1</code> and auto-detect your first installed model.
                       </p>
                     )}
+
                     <button
                       onClick={handleLaunchOpenClaude}
                       disabled={!projectPath || isLaunchingOc}
-                      className="w-full py-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/30 hover:border-purple-500/50 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-purple-500/10"
+                      title="Launch OpenClaude with shared task + skills context"
+                      className="w-full py-2.5 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/30 hover:border-purple-500/50 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-purple-500/10"
                     >
-                      {isLaunchingOc ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
-                      Launch OpenClaude ({openclaudeProvider})
+                      {isLaunchingOc ? <Loader2 size={15} className="animate-spin" /> : <Play size={15} />}
+                      {plan.trim() ? 'Launch OpenClaude' : `Launch OpenClaude (${openclaudeProvider})`}
                     </button>
+
+                    <p className="text-[10px] text-zinc-600 leading-relaxed">
+                      Opens OpenClaude in a separate terminal with the current workspace, provider setup, shared context files, and installed skills summary already loaded.
+                    </p>
                   </div>
                 </div>
               )}

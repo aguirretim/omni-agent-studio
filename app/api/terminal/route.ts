@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { spawn } from 'child_process';
+import { spawn, exec } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     const isWindows = os.platform() === 'win32';
 
     // Safety list of allowed commands
-    const allowedCommands = ['claude', 'gemini', 'opencode', 'codex', 'openclaude', 'ollama'];
+    const allowedCommands = ['claude', 'gemini', 'opencode', 'codex', 'openclaude', 'ollama', 'mirofish'];
     if (!allowedCommands.includes(command)) {
        return NextResponse.json({ error: 'Command not in whitelist' }, { status: 403 });
     }
@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
         codex: 'npm install -g @openai/codex',
         openclaude: 'npm install -g @gitlawb/openclaude',
         ollama: 'winget install Ollama.Ollama',
+        mirofish: 'winget install Docker.DockerDesktop',
       };
       const binaryName: Record<string, string> = {
         claude: 'claude',
@@ -54,6 +55,7 @@ export async function POST(req: NextRequest) {
         codex: 'codex',
         openclaude: 'openclaude',
         ollama: 'ollama',
+        mirofish: 'docker',
       };
       const installCmd = installCommands[command];
       const bin = binaryName[command] || command;
@@ -62,6 +64,56 @@ export async function POST(req: NextRequest) {
       // Full custom bat/ps1 scripts for tools that need more than a single launch line.
       // Each entry is the complete list of lines written to the script file.
       const batScriptOverride: Record<string, string[]> = {
+        mirofish: [
+          '@echo off',
+          `echo === MiroFish Setup ===`,
+          `echo.`,
+          `where docker >nul 2>nul`,
+          `if errorlevel 1 (`,
+          `  echo Docker not found. Installing Docker Desktop via winget...`,
+          `  echo.`,
+          `  winget install Docker.DockerDesktop --accept-package-agreements --accept-source-agreements`,
+          `  if errorlevel 1 (`,
+          `    echo.`,
+          `    echo Auto-install failed. Install Docker Desktop manually from:`,
+          `    echo   https://www.docker.com/products/docker-desktop/`,
+          `    echo.`,
+          `    pause`,
+          `    exit /b 1`,
+          `  )`,
+          `  echo.`,
+          `  echo Docker Desktop installed. You may need to restart your PC before Docker is available.`,
+          `  echo After restart, re-launch MiroFish from OmniAgent Studio.`,
+          `  echo.`,
+          `  pause`,
+          `  exit /b 0`,
+          `)`,
+          `echo Step 1: Clone MiroFish ^(if not already cloned^):`,
+          `echo   git clone https://github.com/666ghj/MiroFish.git`,
+          `echo   cd MiroFish`,
+          `echo.`,
+          `echo Step 2: Configure environment variables:`,
+          `echo   Copy backend/.env.example to backend/.env`,
+          `echo   Set LLM_API_KEY, LLM_BASE_URL, LLM_MODEL_NAME, ZEP_API_KEY`,
+          `echo.`,
+          `echo Step 3: Remap frontend port in docker-compose.yml ^(port 3000 is taken by OmniAgent^):`,
+          `echo   Change  - '3000:3000'  to  - '3001:3000'  under the frontend service`,
+          `echo.`,
+          `echo Step 4: Start MiroFish with Docker:`,
+          `echo   docker compose up`,
+          `echo.`,
+          `echo Once running, MiroFish UI will be at http://localhost:3001`,
+          `echo.`,
+          `curl -s --connect-timeout 2 http://localhost:3001 >nul 2>nul`,
+          `if not errorlevel 1 (`,
+          `  echo MiroFish is already running! Opening browser...`,
+          `  start "" "http://localhost:3001"`,
+          `) else (`,
+          `  echo MiroFish is not running yet. Follow the steps above to start it.`,
+          `)`,
+          `echo.`,
+          `pause`,
+        ],
         ollama: [
           '@echo off',
           `cd /d "${resolvedPath}"`,
@@ -94,6 +146,60 @@ export async function POST(req: NextRequest) {
       };
 
       const psScriptOverride: Record<string, string[]> = {
+        mirofish: [
+          `Write-Host "=== MiroFish Setup ===" -ForegroundColor Cyan`,
+          `Write-Host ""`,
+          `if (-not (Get-Command 'docker' -ErrorAction SilentlyContinue)) {`,
+          `  Write-Host "Docker not found. Installing Docker Desktop via winget..." -ForegroundColor Yellow`,
+          `  Write-Host ""`,
+          `  winget install Docker.DockerDesktop --accept-package-agreements --accept-source-agreements`,
+          `  if ($LASTEXITCODE -ne 0) {`,
+          `    Write-Host ""`,
+          `    Write-Host "Auto-install failed. Install Docker Desktop manually from:" -ForegroundColor Red`,
+          `    Write-Host "  https://www.docker.com/products/docker-desktop/" -ForegroundColor Gray`,
+          `    Write-Host ""`,
+          `    Read-Host "Press Enter to exit"`,
+          `    exit 1`,
+          `  }`,
+          `  Write-Host ""`,
+          `  Write-Host "Docker Desktop installed. You may need to restart your PC before Docker is available." -ForegroundColor Green`,
+          `  Write-Host "After restart, re-launch MiroFish from OmniAgent Studio." -ForegroundColor Green`,
+          `  Write-Host ""`,
+          `  Read-Host "Press Enter to close"`,
+          `  exit 0`,
+          `}`,
+          `Write-Host "Checking MiroFish setup..." -ForegroundColor Green`,
+          `Write-Host ""`,
+          `Write-Host "Step 1: Clone MiroFish (if not already cloned):" -ForegroundColor White`,
+          `Write-Host "  git clone https://github.com/666ghj/MiroFish.git" -ForegroundColor Gray`,
+          `Write-Host "  cd MiroFish" -ForegroundColor Gray`,
+          `Write-Host ""`,
+          `Write-Host "Step 2: Configure environment variables:" -ForegroundColor White`,
+          `Write-Host "  Copy backend/.env.example to backend/.env" -ForegroundColor Gray`,
+          `Write-Host "  Set LLM_API_KEY, LLM_BASE_URL, LLM_MODEL_NAME, ZEP_API_KEY" -ForegroundColor Gray`,
+          `Write-Host ""`,
+          `Write-Host "Step 3: Remap frontend port in docker-compose.yml (port 3000 is taken by OmniAgent Studio):" -ForegroundColor White`,
+          `Write-Host "  Change  - '3000:3000'  to  - '3001:3000'  under the frontend service" -ForegroundColor Gray`,
+          `Write-Host ""`,
+          `Write-Host "Step 4: Start MiroFish with Docker:" -ForegroundColor White`,
+          `Write-Host "  docker compose up" -ForegroundColor Gray`,
+          `Write-Host ""`,
+          `Write-Host "Once running, MiroFish UI will be available at http://localhost:3001" -ForegroundColor Cyan`,
+          `Write-Host ""`,
+          `$running = $false`,
+          `try {`,
+          `  $null = Invoke-WebRequest -Uri 'http://localhost:3001' -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop`,
+          `  $running = $true`,
+          `} catch {}`,
+          `if ($running) {`,
+          `  Write-Host "MiroFish is already running! Opening browser..." -ForegroundColor Green`,
+          `  Start-Process "http://localhost:3001"`,
+          `} else {`,
+          `  Write-Host "MiroFish is not running yet. Follow the steps above to start it." -ForegroundColor Yellow`,
+          `}`,
+          `Write-Host ""`,
+          `Read-Host "Press Enter to close"`,
+        ],
         ollama: [
           `Set-Location "${resolvedPath}"`,
           `if (-not (Get-Command 'ollama' -ErrorAction SilentlyContinue)) {`,
@@ -138,6 +244,7 @@ export async function POST(req: NextRequest) {
       if (terminalType === 'powershell') {
         // Write a .ps1 launcher — resolvedPath written as a literal string value (no shell interpolation)
         const psLines = psScriptOverride[command] ?? [
+          `$env:OPENAI_API_KEY = [System.Environment]::GetEnvironmentVariable('OPENAI_API_KEY', 'User')`,
           `Set-Location "${resolvedPath}"`,
           `if (-not (Get-Command '${bin}' -ErrorAction SilentlyContinue)) {`,
           `  Write-Host "${command} is not installed. Auto-installing..."`,
@@ -148,22 +255,16 @@ export async function POST(req: NextRequest) {
         const ps1Path = path.join(resolvedPath, '.omni-launch.ps1');
         fs.writeFileSync(ps1Path, psLines.join('\r\n'), { encoding: 'utf8' });
 
-        // Wrap the .ps1 in a .bat so explorer.exe can open it — explorer gives the
-        // spawned CMD window proper Explorer process parentage, which is required for
-        // WM_DROPFILES (file drag-drop) to work. Spawning via conhost.exe directly
-        // from Node.js breaks drag-drop because the window inherits WSL/Node lineage.
-        const psWrapLines = [
-          '@echo off',
-          `"${psExe}" -NoExit -ExecutionPolicy Bypass -File "${ps1Path}"`,
-        ];
-        const psWrapPath = path.join(resolvedPath, '.omni-launch-ps.bat');
-        fs.writeFileSync(psWrapPath, psWrapLines.join('\r\n'), { encoding: 'utf8' });
-
-        child = spawn(
-          'explorer.exe',
-          [psWrapPath],
-          { shell: false, detached: true, stdio: 'ignore' },
-        );
+        // Use exec with start to launch the window with proper Explorer
+        // process parentage — required for WM_DROPFILES (file drag-drop) to work.
+        // We use exec instead of spawn to avoid Node.js array quoting issues on Windows.
+        exec(`start "" "${psExe}" -NoExit -ExecutionPolicy Bypass -File "${ps1Path}"`, (err) => {
+          if (err) {
+            const errorMsg = `Error spawning terminal: ${err.message}\n`;
+            console.error(errorMsg);
+            fs.appendFileSync(path.join(resolvedPath, 'launch-debug.log'), errorMsg);
+          }
+        });
       } else {
         // Write a .bat intermediary so resolvedPath is never interpolated into
         // a shell command string — it is written into the file as a quoted value (C2)
@@ -176,21 +277,16 @@ export async function POST(req: NextRequest) {
         const batPath = path.join(resolvedPath, '.omni-launch.bat');
         fs.writeFileSync(batPath, batLines.join('\r\n'), { encoding: 'utf8' });
 
-        // Open the .bat via explorer.exe so the spawned CMD window has proper
+        // Open the .bat via start so the spawned CMD window has proper
         // Explorer process parentage — required for WM_DROPFILES (file drag-drop).
-        // Spawning conhost.exe directly from Node.js breaks drag-drop because the
-        // window inherits Node/WSL process lineage instead of Explorer's.
-        child = spawn(
-          'explorer.exe',
-          [batPath],
-          { shell: false, detached: true, stdio: 'ignore' },
-        );
+        exec(`start "" "${cmdExe}" /c "${batPath}"`, (err) => {
+          if (err) {
+            const errorMsg = `Error spawning terminal: ${err.message}\n`;
+            console.error(errorMsg);
+            fs.appendFileSync(path.join(resolvedPath, 'launch-debug.log'), errorMsg);
+          }
+        });
       }
-
-      child.on('error', (err) => {
-        console.error(`Error spawning terminal: ${err.message}`);
-      });
-      child.unref();
 
       return NextResponse.json({ success: true, message: `Spawned ${command} terminal.` });
     } else {

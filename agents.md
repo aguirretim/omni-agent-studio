@@ -47,6 +47,7 @@ app/
   sessions/page.tsx       — Git session manager (save/commit workspace state)
   ralph/page.tsx          — Ralph autonomous loop dashboard: Goals tab (Active Goals from shared context), Progress tab, How It Works
   api/
+    usage/route.ts        — GET ?projectPath=: reads ~/.claude/projects/{hash}/*.jsonl, aggregates token+cost by session; returns todayCost, totalCost, sessions[]
     folder-dialog/route.ts — Spawns PowerShell FolderBrowserDialog; returns selected path (or null if cancelled)
     analyze/route.ts      — Tech stack + folder structure detection
     agent-teams/route.ts  — Agent Teams: enable, install-skill, check-status, launch-terminal, WSL/tmux setup; 19 skills registered
@@ -78,6 +79,145 @@ scripts/
 public/                   — Static assets (favicon only; default scaffold SVGs removed)
 
 Runtime artifacts (gitignored — generated per session, never committed):
+  .omni-worktrees.md      — Written by agent-teams route when worktree mode active; lists agent→worktree assignments
+  .worktrees/             — Git worktrees created per agent (shared .git DB, isolated working dirs)
+  .agent-team-launch.ps1  — Written by agent-teams route for PowerShell-tier launch
+  .agent-team-launch.sh   — Written by agent-teams route for tmux/WSL-tier launch
+  AGENT_TASKS.md          — Written by /build-* skills, tracks per-session agent work
+  .gemini-task-output.md  — Written by /build-smart-delegate when Gemini-leads strategy runs
+  .gemini-analysis.md     — Written by /build-hybrid-team when Gemini does codebase analysis
+  .factcheck-*.md         — Temp research files written by /fact-check (deleted after report)
+  FACT_CHECK_*.md         — Final fact-check reports written by /fact-check
+```
+
+## Your Role
+You are a world-class expert who adapts completely to the domain of this project.
+- **Software**: Write production-grade code. No placeholders. Optimize for correctness and clarity.
+- **Writing**: Produce sharp, direct prose that matches the defined audience and tone. No filler.
+- **Research**: Synthesize accurately. Surface conflicting evidence. Cite sources.
+- **Business / Strategy**: Think in tradeoffs, stakeholders, and measurable outcomes.
+- **Any domain**: Skip preamble. Lead with the actual work, not a description of it.
+
+## Epistemic Standards (always apply, every domain)
+**Accuracy over speed.** If something cannot be verified, say "I don't know" or "I can't verify that." Never fabricate — not even plausible-sounding details.
+
+**RAG-first.** Before any recommendation or time-sensitive claim: retrieve from authoritative, preferably primary sources and cite them. Prefer peer-reviewed research, official documentation, and well-established references over pattern-matching or heuristics. If retrieval isn't possible, say so explicitly and give the most conservative, least-speculative answer available.
+
+**Flag uncertainty explicitly.** State confidence level or describe what's unknown. Separate facts from interpretations — label each clearly, never blend them.
+
+**Structured reasoning.** For any non-trivial claim: show reasoning step by step, define key terms, surface assumptions, check edge cases. If sources disagree, present both sides with citations and explain what evidence would resolve the disagreement.
+
+**Recommendations must earn their place.** Include the criteria used, the tradeoffs considered, and why this option wins vs. alternatives — grounded in retrieved evidence. Generic advice is not acceptable. Outputs must be actionable and bounded.
+
+**Efficiency.** Don't waste words. Lead with the answer. Optimize for correctness, not persuasion.
+
+## Working Rules
+1. Never delete, overwrite, or publish anything without explicit permission.
+2. Never produce placeholder content — finish what you start.
+3. When uncertain, ask one specific clarifying question rather than guessing.
+4. All commands use npm and Windows cmd.exe syntax.
+5. Do not modify files in `app/api/` unless explicitly instructed.
+6. Keep the dark-mode zinc/slate design system consistent — do not introduce new color schemes.
+
+## Lessons Log
+<!-- After any correction, append one line: YYYY-MM-DD | what went wrong | rule to follow next time -->
+<!-- Read this section at the start of every session and apply every rule before touching any code. -->
+
+## Self-Update Protocol (MANDATORY — no exceptions)
+At the START of every session: read **Lessons Log** and apply every rule before touching any code.
+
+After completing ANY task — without being asked — edit this file before ending your response:
+1. Mark the completed goal with [x]
+2. Append one line to **Session Log**: `YYYY-MM-DD · [task completed] · [key decision or output]`
+3. Add any new goals, blockers, or follow-ups to **Active Goals**
+4. Update **Project Structure** if files were added, removed, or repurposed
+5. After any correction from the user, add an entry to **Lessons Log**: `YYYY-MM-DD | what went wrong | rule to follow next time`
+
+This keeps every AI tool that opens this folder fully in sync with the current state of the work.
+No reminder needed — this is automatic, like saving a file.
+# Shared AI Context
+
+## What This Project Is
+- **Name**: OmniAgent Studio
+- **Domain**: Software
+- **Goal**: A local Next.js dashboard that lets developers coordinate multiple AI coding tools (Claude Code, Gemini CLI, OpenCode, OpenAI Codex) from one interface using a shared context file.
+- **Audience**: Developers who want to run multiple AI coding agents simultaneously without losing context between sessions or tools.
+- **Constraints**: Windows-first (cmd.exe, WSL for tmux split-panes). No new dependencies — only what's already in package.json. All API routes in `app/api/` are frozen — do not modify them unless explicitly asked. Tailwind CSS v4 (no config file, `@import "tailwindcss"` only). Every page must be `'use client'`.
+
+## Tech Stack
+- **Language**: TypeScript
+- **Framework**: Next.js 16 (App Router) + React 19
+- **Styling**: Tailwind CSS v4 + framer-motion (animations) + lucide-react (icons)
+- **Database/ORM**: None
+- **Package Manager**: npm
+
+## Project Structure
+```
+.claude.md                — Shared AI context file (this file) — synced to .gemini.md + agents.md after every session
+.gemini.md                — Gemini-flavored copy of .claude.md (identical content, kept in sync via cp)
+agents.md                 — Generic agent copy of .claude.md (identical content, kept in sync via cp)
+AGENT_TASKS.md            — Task tracker: records which tool handled each phase per /build-* run
+.claude/settings.local.json — Claude Code permissions (dangerouslySkipPermissions: true + Bash(*) wildcard)
+.claude/commands/
+  build-with-agent-team.md  — /build-with-agent-team skill
+  build-hybrid-team.md      — /build-hybrid-team skill
+  build-smart-delegate.md   — /build-smart-delegate skill
+  fact-check.md             — /fact-check skill
+  checkpoint.md             — /checkpoint skill
+  ralph.md                  — /ralph skill (autonomous loop: read prd.json → implement → commit → update → repeat)
+  create-prd.md             — /create-prd skill (generate PRD + prd.json from task description)
+  convert-prd.md            — /convert-prd skill (convert markdown PRD to prd.json)
+  ux-heuristic-review.md    — /ux-heuristic-review skill (Nielsen 10 heuristics, 4-severity)
+  wcag-audit.md             — /wcag-audit skill (WCAG 2.1 AA criterion-level)
+  design-critique.md        — /design-critique skill (5-dimension: hierarchy/interaction/consistency/accessibility/brand)
+  peer-review.md            — /peer-review skill (6-dimension editorial review)
+  literature-review.md      — /literature-review skill (PRISMA-inspired, ≥10 sources)
+  research-synthesis.md     — /research-synthesis skill (user-provided sources, consensus/contradiction analysis)
+
+app/
+  layout.tsx              — Root layout, delegates to AppShell
+  page.tsx                — Home: workspace selector + welcome state / quick action cards
+  globals.css             — Design tokens + base styles (do not change)
+  context/page.tsx        — Shared Context editor (auto-save debounce, auto-template on first load)
+  tools/page.tsx          — AI Tools launcher (4 ToolCard components)
+  agents/page.tsx         — Agent Teams page (AgentTeams component only)
+  sessions/page.tsx       — Git session manager (save/commit workspace state)
+  ralph/page.tsx          — Ralph autonomous loop dashboard: Goals tab (Active Goals from shared context), Progress tab, How It Works
+  api/
+    usage/route.ts        — GET ?projectPath=: reads ~/.claude/projects/{hash}/*.jsonl, aggregates token+cost by session; returns todayCost, totalCost, sessions[]
+    folder-dialog/route.ts — Spawns PowerShell FolderBrowserDialog; returns selected path (or null if cancelled)
+    analyze/route.ts      — Tech stack + folder structure detection
+    agent-teams/route.ts  — Agent Teams: enable, install-skill, check-status, launch-terminal, WSL/tmux setup; 19 skills registered
+    commit/route.ts       — Git add + commit for sessions page
+    context/route.ts      — Read + sync shared context files
+    fs/route.ts           — Directory browser for FolderBrowser modal
+    terminal/route.ts     — Spawn interactive terminal windows for AI tools
+    ralph/route.ts        — Ralph file I/O: read-progress, parse-goals (reads Active Goals from shared context)
+
+components/
+  layout/
+    AppShell.tsx          — Sidebar nav + header + WorkspaceProvider wrapper
+    WorkspaceProvider.tsx — Global context: projectPath, recentPaths, syncStatus
+    WorkspaceSelector.tsx — Workspace path input + native folder picker + recents dropdown (name+parent layout)
+    FolderBrowser.tsx     — Full-screen directory browser modal
+    HowToUse.tsx          — How to use modal (accessible via ? in header)
+  ui/
+    StatusToast.tsx       — Animated status pill in header
+    ToolCard.tsx          — Individual AI tool launch card (Claude, Gemini, OpenCode, Codex)
+  features/
+    AgentTeams.tsx        — Agent Teams panel: Launch / Split-Pane Setup / How It Works / Preview tabs
+    SplitPanePreview.tsx  — Animated 2x2 terminal mosaic (4 agent panes), used in Preview tab
+
+reset.bat                 — One-click Claude Code reset: deletes %USERPROFILE%\.claude config, reinstalls CLI, guides re-login
+
+scripts/
+  setup.ts                — Pre-dev/build setup script (checks + installs AI CLIs on first boot)
+
+public/                   — Static assets (favicon only; default scaffold SVGs removed)
+
+Runtime artifacts (gitignored — generated per session, never committed):
+  .omni-worktrees.md      — Written by agent-teams route when worktree mode active; lists agent→worktree assignments
+  .worktrees/             — Git worktrees created per agent (shared .git DB, isolated working dirs)
   .agent-team-launch.ps1  — Written by agent-teams route for PowerShell-tier launch
   .agent-team-launch.sh   — Written by agent-teams route for tmux/WSL-tier launch
   AGENT_TASKS.md          — Written by /build-* skills, tracks per-session agent work
@@ -139,6 +279,7 @@ No reminder needed — this is automatic, like saving a file.
 - **OpenCode**: NOT configured — `~/.config/opencode/auth.json` is empty, no `config.toml`. Needs `OPENAI_API_KEY` or provider config.
 
 ## Active Goals
+- [x] Fix terminal and agent teams launch failing because explorer.exe opens .bat files in text editors
 - [x] Light mode polish: FolderBrowser.tsx macOS chrome is still dark — add a light-mode override for its toolbar/header (keep file rows dark is fine as a terminal feel)
 - [x] Light mode polish: add `color-scheme: dark` to SplitPanePreview wrapper so browser renders scrollbars correctly for its dark terminal look even in light mode
 - [x] Light mode polish: WorkspaceSelector recents dropdown needs light bg override (currently uses zinc-800 bg-zinc-800/90 backdrop which looks odd in light)
@@ -266,3 +407,11 @@ No reminder needed — this is automatic, like saving a file.
 - 2026-04-03 · /build-with-agent-team · Reset script + troubleshooting · Root cause: user ran CMD syntax (rmdir /s /q) in PowerShell to delete %USERPROFILE%\.claude — PowerShell aliases rmdir to Remove-Item so /q is rejected · Fix: created reset.bat (one-click cleanup: deletes .claude config, reinstalls Claude Code, guides re-login); added Troubleshooting section to HowToUse.tsx (3 cards: reset instructions, missing tool, app won't start) with warning against manual rmdir in PowerShell · 0 TS errors
 - 2026-04-03 · /build-with-agent-team · Skill documentation overhaul · Rewrote AgentTeams.tsx "How It Works" tab: 4 sections (Getting Started, The 3 Build Skills, Other Useful Skills, How Agents Stay in Sync); each /build skill gets its own card with color-coded border, "Best for" / "How it works" / "Requires" / "Example" fields; 7 other skills documented in 2-col grid; pro tip recommends /build-with-agent-team as default · 0 TS errors
 - 2026-04-03 · /build-with-agent-team · Rate-limit resilience + session cost tracking · Added to all 4 skill files (build-with-agent-team, build-hybrid-team, build-smart-delegate, ralph): "Rate-Limit Resilience" section (auto-retry 3x with 30s wait, resume from AGENT_TASKS.md checkpoint, stagger spawning, context budget check, adaptive routing for smart-delegate); "Session Cost Report" section (mandatory end-of-session cost estimate using API pricing, written to AGENT_TASKS.md + appended to session log); session log format updated to include `cost ~$X.XX`; smart-delegate also shows savings vs Claude-only
+- 2026-04-05 · /build-with-agent-team · git pull · Pulled 3 commits from origin/master (fast-forward): b6bbb47 fix(audio) track chime hook in repo; b01970a feat add reset script + troubleshooting guide + skill docs; 87b75cb docs session log update · Local changes stashed + restored cleanly
+- 2026-04-05 · fix: Windows Terminal no longer opening in Auto mode · Root cause 1: Node.js server process doesn't have %LOCALAPPDATA%\Microsoft\WindowsApps in PATH, so `where wt` fails → hasWindowsTerminal stays false → falls through to cmd fallback · Root cause 2: `start "" "shell:AppsFolder\..."` doesn't pass CLI arguments to Windows Terminal (shell: URIs drop args) · Fix: added LOCALAPPDATA path fallback check in both launch-terminal and launch-openclaude actions; replaced shell:AppsFolder bat command with `start "" "%LOCALAPPDATA%\Microsoft\WindowsApps\wt.exe" ...` across all 3 WT launch sites in agent-teams/route.ts · 0 TS errors
+- 2026-04-06 · feat: git worktree auto-isolation + session cost panel · Worktrees: when agentCount > 1, agent-teams/route.ts pre-creates N git branches (.worktrees/agent-N, branch omni/session/ts-N) before Claude starts, writes .omni-worktrees.md with assignments, injects "Worktrees active — see .omni-worktrees.md" prefix into build command; works in both WSL-tmux and PS1 paths; AgentTeams.tsx shows worktree mode hint in launch tab · Cost panel: new app/api/usage/route.ts reads ~/.claude/projects/{hash}/*.jsonl, aggregates token counts by sessionId+model, calculates cost using 2026 Claude pricing (sonnet-4-6: $3/$15 input/output MTok); sessions/page.tsx extended with Usage card showing today's cost, all-time total, token breakdown, per-session table · 0 TS errors
+- 2026-04-06 · /build-with-agent-team · Ollama tool card + auto model pull · Added Ollama (teal) as 6th tool card in app/tools/page.tsx; whitelisted in terminal/route.ts with winget install fallback; launch script (bat + ps1) checks `ollama list` and auto-pulls qwen2.5-coder:7b if no models installed, then starts `ollama serve`; batScriptOverride/psScriptOverride maps enable per-tool custom launch sequences without touching shared template · 0 TS errors
+- 2026-04-06 · fix: OpenClaude /provider TUI broken on Windows · Root cause: /provider TUI doesn't accept Enter key in Windows terminals; OPENAI_MODEL was hardcoded to 'llama3' (wrong model) · Fix: agent-teams/route.ts ollama provider now runs `ollama list` at launch time to detect first installed model (falls back to qwen2.5-coder:7b); launch message updated to show detected model+URL and tell user /provider is not needed (env vars already configure the provider)
+- 2026-04-06 · fix: openclaude Gemini auth (1 patch to @gitlawb/openclaude/dist/cli.mjs) · createAPIClient: Gemini was not included in the OpenAI shim condition, falling through to Anthropic SDK → added `|| isEnvTruthy(process.env.CLAUDE_CODE_USE_GEMINI)` to the shim check · Root cause of remaining 401: Gemini OpenAI-compat endpoint only accepts API keys (AIzaSy...), not OAuth tokens (ya29...) — they are different auth paths · .openclaude-profile.json: restored GEMINI_API_KEY; OAuth approach reverted (incompatible with OpenAI-compat endpoint)
+- 2026-04-06 · fix: Ollama terminal closes after half a second · Root cause: ollama serve exits immediately when port 11434 is already bound (Ollama runs as a Windows background service after install) · Fix: bat+ps1 now check curl http://localhost:11434 before calling ollama serve; if already running, show message + pause; add pause after exit so terminal never silently closes
+- 2026-04-28 · /fix · Fix terminal and agent teams launch failing because explorer.exe opens .bat files in text editors instead of executing them · Replaced all explorer.exe spawn calls in terminal/route.ts and agent-teams/route.ts with PowerShell Start-Process calls to bypass .bat associations while preserving Explorer process lineage · cost ~$0.00

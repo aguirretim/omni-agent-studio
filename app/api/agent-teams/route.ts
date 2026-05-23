@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { spawn } from 'child_process';
+import { spawn, exec } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -4633,7 +4633,7 @@ export async function POST(req: NextRequest) {
           // tmux session even when a tmux server is already running from a different
           // parent process (which would not inherit exported vars from this script).
           // Also set it inline in the bash -c command as a belt-and-suspenders.
-          'tmux new-session -d -s "$SESSION" -e "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1" -e "LANG=C.UTF-8" "bash -c \'export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 LANG=C.UTF-8; exec claude --dangerously-skip-permissions --teammate-mode tmux\'"',
+          'tmux new-session -d -s "$SESSION" -e "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1" -e "LANG=C.UTF-8" "bash -c \'export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 LANG=C.UTF-8; exec claude --dangerously-skip-permissions\'"',
           '',
           // F5 = clipboard path converter (no dialog, always works from tmux run-shell).
           // Workflow: in Explorer, Shift+Right-click a file → "Copy as path", then F5.
@@ -4698,15 +4698,13 @@ export async function POST(req: NextRequest) {
         // file drag-drop (WM_DROPFILES / IDropTarget) to work.
         // Spawning wt.exe directly from Node.js breaks drag-drop.
         const windowTitle = path.basename(projectPath);
-        const wtBat1Lines = [
-          '@echo off',
-          `start "" "%LOCALAPPDATA%\\Microsoft\\WindowsApps\\wt.exe" --title "${windowTitle}" wsl.exe bash "${scriptWslPath}"`,
-        ];
-        const wtBat1Path = path.join(projectPath, '.omni-wt-launch.bat');
-        fs.writeFileSync(wtBat1Path, wtBat1Lines.join('\r\n'), { encoding: 'utf8' });
-        const wtProc = spawn('explorer.exe', [wtBat1Path], { shell: false, detached: true, stdio: 'ignore' });
-        wtProc.on('error', (err) => console.error('[agent-teams] wt-tmux error:', err.message));
-        wtProc.unref();
+        exec(`start "" "wt.exe" --title "${windowTitle}" wsl.exe bash "${scriptWslPath}"`, (err) => {
+          if (err) {
+            const msg = `[agent-teams] wt-tmux error: ${err.message}\n`;
+            console.error(msg);
+            fs.appendFileSync(path.join(projectPath, 'launch-debug.log'), msg);
+          }
+        });
         return NextResponse.json({ success: true, mode: 'wt-tmux' });
       }
 
@@ -4716,6 +4714,7 @@ export async function POST(req: NextRequest) {
       const safePs1Proj = projectPath.replace(/'/g, "''");
       const ps1Lines = [
         `$env:PATH = [System.Environment]::GetEnvironmentVariable('PATH','User') + ';' + [System.Environment]::GetEnvironmentVariable('PATH','Machine')`,
+        `$env:OPENAI_API_KEY = [System.Environment]::GetEnvironmentVariable('OPENAI_API_KEY', 'User')`,
         `Set-Location '${safePs1Proj}'`,
         `$env:CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = '1'`,
         // ── Worktree isolation ──────────────────────────────────────────────
@@ -4740,38 +4739,33 @@ export async function POST(req: NextRequest) {
           `Write-Host ''`,
         );
       }
-      ps1Lines.push('claude --dangerously-skip-permissions --teammate-mode in-process');
+      ps1Lines.push('claude --dangerously-skip-permissions');
 
       const ps1Path = path.join(projectPath, '.agent-team-launch.ps1');
       fs.writeFileSync(ps1Path, ps1Lines.join('\r\n'), { encoding: 'utf8' });
 
       if (hasWindowsTerminal) {
         // Launch WT via UWP App ID for proper Explorer-lineage drag-drop support
-        const wtBat2Lines = [
-          '@echo off',
-          `start "" "%LOCALAPPDATA%\\Microsoft\\WindowsApps\\wt.exe" --title "${path.basename(projectPath)}" -- powershell -NoExit -ExecutionPolicy Bypass -File "${ps1Path}"`,
-        ];
-        const wtBat2Path = path.join(projectPath, '.omni-wt-launch.bat');
-        fs.writeFileSync(wtBat2Path, wtBat2Lines.join('\r\n'), { encoding: 'utf8' });
-        const wtPs1Proc = spawn('explorer.exe', [wtBat2Path], { shell: false, detached: true, stdio: 'ignore' });
-        wtPs1Proc.on('error', (err) => console.error('[agent-teams] wt launch error:', err.message));
-        wtPs1Proc.unref();
+        exec(`start "" "wt.exe" --title "${path.basename(projectPath)}" -- powershell.exe -NoExit -ExecutionPolicy Bypass -File "${ps1Path}"`, (err) => {
+          if (err) {
+            const msg = `[agent-teams] wt launch error: ${err.message}\n`;
+            console.error(msg);
+            fs.appendFileSync(path.join(projectPath, 'launch-debug.log'), msg);
+          }
+        });
         return NextResponse.json({ success: true, mode: 'wt-cmd' });
       }
 
-      // Wrap the .ps1 in a .bat and open via explorer.exe so the spawned window
+      // Use Start-Process via PowerShell so the spawned window
       // inherits Explorer's process lineage — required for WM_DROPFILES drag-drop.
       // Spawning via cmd.exe/Node.js directly breaks drag-drop (WSL/Node lineage).
-      const sysPs = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
-      const batWrapLines = [
-        '@echo off',
-        `"${sysPs}" -NoExit -ExecutionPolicy Bypass -File "${ps1Path}"`,
-      ];
-      const batWrapPath = path.join(projectPath, '.agent-team-launch.bat');
-      fs.writeFileSync(batWrapPath, batWrapLines.join('\r\n'), { encoding: 'utf8' });
-      const startProc = spawn('explorer.exe', [batWrapPath], { shell: false, detached: true, stdio: 'ignore' });
-      startProc.on('error', (err) => console.error('[agent-teams] launch error:', err.message));
-      startProc.unref();
+      exec(`start "" "powershell.exe" -NoExit -ExecutionPolicy Bypass -File "${ps1Path}"`, (err) => {
+        if (err) {
+          const msg = `[agent-teams] launch error: ${err.message}\n`;
+          console.error(msg);
+          fs.appendFileSync(path.join(projectPath, 'launch-debug.log'), msg);
+        }
+      });
       return NextResponse.json({ success: true, mode: 'cmd' });
     }
 
@@ -4779,15 +4773,17 @@ export async function POST(req: NextRequest) {
     if (action === 'launch-openclaude') {
       if (!projectPath) return NextResponse.json({ error: 'projectPath is required' }, { status: 400 });
 
-      const ALLOWED_PROVIDERS = ['openai', 'gemini', 'deepseek', 'ollama', 'github'] as const;
+      const ALLOWED_PROVIDERS = ['codex', 'gemini', 'deepseek', 'ollama', 'github'] as const;
       type OcProvider = typeof ALLOWED_PROVIDERS[number];
       const rawProvider = body.provider as string;
       const provider: OcProvider = ALLOWED_PROVIDERS.includes(rawProvider as OcProvider) ? (rawProvider as OcProvider) : 'gemini';
 
       // Provider-specific PowerShell env var lines
       const providerEnv: Record<OcProvider, string[]> = {
-        openai: [
+        codex: [
           `$env:CLAUDE_CODE_USE_OPENAI = '1'`,
+          `$env:OPENAI_BASE_URL = 'https://chatgpt.com/backend-api/codex'`,
+          `$env:OPENAI_MODEL = 'codexplan'`,
         ],
         gemini: [
           `Remove-Item Env:CLAUDE_CODE_USE_OPENAI -ErrorAction SilentlyContinue`,
@@ -4805,7 +4801,7 @@ export async function POST(req: NextRequest) {
           `$env:CLAUDE_CODE_USE_OPENAI = '1'`,
           `$env:OPENAI_BASE_URL = 'http://localhost:11434/v1'`,
           `# Detect first installed Ollama model; fall back to qwen2.5-coder:7b`,
-          `$_ollamaModel = (& ollama list 2>$null | Select-Object -Skip 1 | Where-Object { $_ -match ':' } | Select-Object -First 1 | ForEach-Object { ($_ -split '\s+')[0] })`,
+          `$_ollamaModel = (& ollama list 2>$null | Select-Object -Skip 1 | Where-Object { $_ -match ':' } | Select-Object -First 1 | ForEach-Object { ($_ -split '\\s+')[0] })`,
           `if ($_ollamaModel) { $env:OPENAI_MODEL = $_ollamaModel } else { $env:OPENAI_MODEL = 'qwen2.5-coder:7b' }`,
         ],
         github: [
@@ -4818,20 +4814,59 @@ export async function POST(req: NextRequest) {
       };
 
       const safeProjectPath = projectPath.replace(/'/g, "''");
+      const commandsDir = path.join(resolvedProjectPath || projectPath, '.claude', 'commands');
+      const installedSkillFiles = fs.existsSync(commandsDir)
+        ? fs.readdirSync(commandsDir).filter(name => name.endsWith('.md')).sort()
+        : [];
+      const skillSummary = installedSkillFiles.length
+        ? installedSkillFiles.map(name => {
+            const skillPath = path.join(commandsDir, name);
+            const raw = fs.readFileSync(skillPath, 'utf8');
+            const titleMatch = raw.match(/^#\s+(.+)$/m);
+            const bodyLine = raw
+              .split(/\r?\n/)
+              .map(line => line.trim())
+              .find(line => line && !line.startsWith('#') && !line.startsWith('```'));
+            const label = '/' + name.replace(/\.md$/, '');
+            const title = titleMatch?.[1]?.trim();
+            return `- ${label}${title ? ` — ${title}` : ''}${bodyLine ? ` — ${bodyLine.slice(0, 160)}` : ''}`;
+          }).join('\n')
+        : '- No installed skills found in .claude/commands';
+      const skillReadList = installedSkillFiles.length
+        ? installedSkillFiles.map(name => `- .claude/commands/${name}`).join('\n')
+        : '- No installed skills found in .claude/commands';
+      const safePlanText = (typeof plan === 'string' && plan.trim() ? plan.trim() : 'No task plan provided. Review the workspace and ask what to do next.').replace(/'/g, "''");
+      const safeSkillSummary = skillSummary.replace(/'/g, "''");
+      const safeSkillReadList = skillReadList.replace(/'/g, "''");
+      const promptBlock = [
+        'You are OpenClaude running inside OmniAgent Studio.',
+        '',
+        'Current task / plan:',
+        safePlanText,
+        '',
+        'Installed skills available in this project:',
+        safeSkillSummary,
+        '',
+        'Before doing any substantive work, read every installed skill file below so you have the full skill details:',
+        safeSkillReadList,
+        '',
+        'Also read the shared project context files first (.claude.md, .gemini.md, agents.md if present), then use the task details and skill files above to decide how to proceed.',
+      ].join('\n');
       const ps1Lines = [
         `$env:PATH = [System.Environment]::GetEnvironmentVariable('PATH','User') + ';' + [System.Environment]::GetEnvironmentVariable('PATH','Machine')`,
         `Set-Location '${safeProjectPath}'`,
         ...providerEnv[provider],
         `Write-Host ''`,
         `Write-Host '[OpenClaude] Provider: ${provider}' -ForegroundColor Magenta`,
-        `if ('${provider}' -eq 'ollama') {`,
+        `if ('${provider}' -eq 'ollama' -or '${provider}' -eq 'codex') {`,
         `  Write-Host "[OpenClaude] Model: $env:OPENAI_MODEL  |  API: $env:OPENAI_BASE_URL" -ForegroundColor Cyan`,
-        `  Write-Host '[OpenClaude] Provider is pre-configured via env vars. No need to run /provider.' -ForegroundColor DarkGray`,
-        `} else {`,
-        `  Write-Host '[OpenClaude] Use /provider inside to configure credentials if needed.' -ForegroundColor DarkGray`,
         `}`,
+        `Write-Host '[OpenClaude] Loaded task details and installed skills summary into the startup prompt.' -ForegroundColor DarkGray`,
         `Write-Host ''`,
-        `openclaude`,
+        `$prompt = @'`,
+        promptBlock,
+        `'@`,
+        `openclaude --dangerously-skip-permissions $prompt`,
       ];
 
       const ps1Path = path.join(projectPath, '.omni-openclaude-launch.ps1');
@@ -4846,28 +4881,27 @@ export async function POST(req: NextRequest) {
         if (fs.existsSync(wtPath)) hasWt = true;
       }
 
+      const sysPs = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
+
       if (hasWt) {
         // Launch WT directly via known install path so arguments are passed correctly
-        const wtOcBatLines = [
-          '@echo off',
-          `start "" "%LOCALAPPDATA%\\Microsoft\\WindowsApps\\wt.exe" --title "OpenClaude - ${provider}" -- powershell -NoExit -ExecutionPolicy Bypass -File "${ps1Path}"`,
-        ];
-        const wtOcBatPath = path.join(projectPath, '.omni-wt-launch.bat');
-        fs.writeFileSync(wtOcBatPath, wtOcBatLines.join('\r\n'), { encoding: 'utf8' });
-        const wtOc = spawn('explorer.exe', [wtOcBatPath], { shell: false, detached: true, stdio: 'ignore' });
-        wtOc.on('error', (err) => console.error('[agent-teams] openclaude wt error:', err.message));
-        wtOc.unref();
+        exec(`start "" "wt.exe" --title "OpenClaude - ${provider}" -- powershell.exe -NoExit -ExecutionPolicy Bypass -File "${ps1Path}"`, (err) => {
+          if (err) {
+            const msg = `[agent-teams] openclaude wt error: ${err.message}\n`;
+            console.error(msg);
+            fs.appendFileSync(path.join(projectPath, 'launch-debug.log'), msg);
+          }
+        });
         return NextResponse.json({ success: true, mode: 'wt' });
       }
-      // Fallback: wrap in .bat and open via explorer.exe for drag-drop support
-      const ocBatLines = [
-        '@echo off',
-        `powershell -NoExit -ExecutionPolicy Bypass -File "${ps1Path}"`,
-      ];
-      const ocBatPath = path.join(projectPath, '.omni-openclaude-launch.bat');
-      fs.writeFileSync(ocBatPath, ocBatLines.join('\r\n'), { encoding: 'utf8' });
-      const cmdOc = spawn('explorer.exe', [ocBatPath], { shell: false, detached: true, stdio: 'ignore' });
-      cmdOc.on('error', (err) => console.error('[agent-teams] openclaude launch error:', err.message));
+      // Fallback: use Start-Process for drag-drop support
+      exec(`start "" "powershell.exe" -NoExit -ExecutionPolicy Bypass -File "${ps1Path}"`, (err) => {
+        if (err) {
+          const msg = `[agent-teams] openclaude launch error: ${err.message}\n`;
+          console.error(msg);
+          fs.appendFileSync(path.join(projectPath, 'launch-debug.log'), msg);
+        }
+      });
       return NextResponse.json({ success: true, mode: 'cmd' });
     }
 

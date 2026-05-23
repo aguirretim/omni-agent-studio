@@ -86,6 +86,19 @@ const tools = [
     tags: ['100% local', 'No API key', 'OpenAI-compatible API', 'Llama / Mistral / Qwen', 'Works with OpenClaude'],
     billingUrl: 'https://ollama.com/library',
   },
+  {
+    id: 'mirofish',
+    name: 'MiroFish',
+    command: 'mirofish',
+    icon: 'MF',
+    color: 'text-violet-400',
+    bgColor: 'bg-violet-400/10',
+    hoverBorder: 'hover:border-violet-500/50',
+    description: 'Swarm-intelligence prediction engine',
+    detail: "Spins up MiroFish via Docker — a multi-agent simulation platform that seeds a knowledge graph from documents, spawns hundreds of autonomous agent personas, runs multi-round social simulations, and outputs structured prediction reports. Requires Docker Desktop. Runs on port 3001 (port 3000 is reserved for OmniAgent Studio).",
+    tags: ['Multi-agent swarm', 'Knowledge graph', 'Prediction reports', 'Docker', 'LLM-agnostic'],
+    billingUrl: 'https://github.com/666ghj/MiroFish',
+  },
 ];
 
 export default function ToolsPage() {
