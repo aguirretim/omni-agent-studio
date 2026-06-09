@@ -4995,10 +4995,10 @@ export async function POST(req: NextRequest) {
         'Installed skills available in this project:',
         safeSkillSummary,
         '',
-        'Before doing any substantive work, read every installed skill file below so you have the full skill details:',
+        'You can read any of the installed skill files below to get their specific details when you need them:',
         safeSkillReadList,
         '',
-        'Also read the shared project context files first (.claude.md, .gemini.md, agents.md if present), then use the task details and skill files above to decide how to proceed.',
+        'Also read the shared project context files first (.claude.md, .gemini.md, agents.md if present) to understand the project state, then proceed with the task using the details and skills above.',
       ].join('\n');
       const ps1Lines = [
         `$env:PATH = [System.Environment]::GetEnvironmentVariable('PATH','User') + ';' + [System.Environment]::GetEnvironmentVariable('PATH','Machine')`,

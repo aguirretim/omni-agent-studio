@@ -259,14 +259,40 @@ const server = http.createServer(async (req, res) => {
         
         console.log(`[Proxy] Forwarding to Cloud Code API (${endpoint}, model: ${targetModel})...`);
 
-        const apiRes = await fetch(`https://cloudcode-pa.googleapis.com/v1internal:${endpoint}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify(mappedPayload)
-        });
+        let apiRes;
+        let attempts = 0;
+        const maxAttempts = 10;
+        
+        while (attempts < maxAttempts) {
+          apiRes = await fetch(`https://cloudcode-pa.googleapis.com/v1internal:${endpoint}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(mappedPayload)
+          });
+          
+          if (apiRes.status === 429) {
+            attempts++;
+            let retryDelay = 5000; // default 5 seconds
+            try {
+              const cloneRes = apiRes.clone();
+              const errJson = await cloneRes.json();
+              const message = errJson[0]?.error?.message || errJson.error?.message || '';
+              const match = message.match(/reset after (\d+)\s*s/i);
+              if (match && match[1]) {
+                retryDelay = (parseInt(match[1], 10) + 1) * 1000;
+              }
+            } catch {}
+            
+            console.log(`[Proxy] Rate limited (429). Retrying in ${retryDelay / 1000}s (attempt ${attempts}/${maxAttempts})...`);
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
+            continue;
+          }
+          
+          break;
+        }
 
         if (!apiRes.ok) {
           const errText = await apiRes.text();
