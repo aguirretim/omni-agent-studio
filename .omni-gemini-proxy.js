@@ -4,7 +4,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const PORT = 4005;
+const PORT = 4006;
 const OAUTH_PATH = path.join(os.homedir(), '.gemini', 'oauth_creds.json');
 
 // Helper to get active access token, refreshing if needed

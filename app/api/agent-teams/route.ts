@@ -4916,7 +4916,7 @@ export async function POST(req: NextRequest) {
           `    if (Test-Path $proxyPath) {`,
           `      Write-Host '[OpenClaude] Starting local Gemini OAuth proxy...' -ForegroundColor Green`,
           `      $proxyJob = Start-Process node -ArgumentList $proxyPath -WindowStyle Hidden -PassThru`,
-          `      $env:GEMINI_BASE_URL = 'http://localhost:4005/v1beta/openai'`,
+          `      $env:GEMINI_BASE_URL = 'http://localhost:4006/v1beta/openai'`,
           `      $env:GEMINI_API_KEY = 'dummy_key'`,
           `      Write-Host '[OpenClaude] Authorized using Gemini CLI OAuth credentials.' -ForegroundColor Green`,
           `    } else {`,
