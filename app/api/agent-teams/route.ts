@@ -4781,6 +4781,7 @@ export async function POST(req: NextRequest) {
 
       // Read existing .openclaude-profile.json if it exists
       const targetDir = resolvedProjectPath || projectPath;
+      const absoluteProxyPath = path.join(targetDir, '.omni-gemini-proxy.js').replace(/\\/g, '/');
       const profilePath = path.join(targetDir, '.openclaude-profile.json');
       let existingProfile: any = null;
       if (fs.existsSync(profilePath)) {
@@ -4900,7 +4901,7 @@ export async function POST(req: NextRequest) {
           `Remove-Item Env:OPENAI_API_KEY -ErrorAction SilentlyContinue`,
         ] : [
           `$env:CLAUDE_CODE_USE_GEMINI = '1'`,
-          `$env:GEMINI_MODEL = 'gemini-2.0-flash'`,
+          `$env:GEMINI_MODEL = 'gemini-2.5-flash'`,
           `$geminiOauthPath = Join-Path $env:USERPROFILE '.gemini\\oauth_creds.json'`,
           `if (Test-Path $geminiOauthPath) {`,
           `  try {`,
@@ -4910,10 +4911,17 @@ export async function POST(req: NextRequest) {
           `    if ($expiry -and ($now -gt ($expiry - 60000))) {`,
           `      Write-Host '[OpenClaude] Gemini CLI token expired. Refreshing via gemini CLI...' -ForegroundColor Yellow`,
           `      & gemini -p "READY" | Out-Null`,
-          `      $oauth = Get-Content $geminiOauthPath -Raw | ConvertFrom-Json`,
           `    }`,
-          `    $env:GEMINI_API_KEY = $oauth.access_token`,
-          `    Write-Host '[OpenClaude] Authorized using Gemini CLI OAuth credentials.' -ForegroundColor Green`,
+          `    $proxyPath = '${absoluteProxyPath}'`,
+          `    if (Test-Path $proxyPath) {`,
+          `      Write-Host '[OpenClaude] Starting local Gemini OAuth proxy...' -ForegroundColor Green`,
+          `      $proxyJob = Start-Process node -ArgumentList $proxyPath -WindowStyle Hidden -PassThru`,
+          `      $env:OPENAI_BASE_URL = 'http://localhost:4005/v1'`,
+          `      $env:OPENAI_API_KEY = 'dummy_key'`,
+          `      Write-Host '[OpenClaude] Authorized using Gemini CLI OAuth credentials.' -ForegroundColor Green`,
+          `    } else {`,
+          `      Write-Host "[OpenClaude] Error: .omni-gemini-proxy.js not found at $proxyPath" -ForegroundColor Red`,
+          `    }`,
           `  } catch {`,
           `    Write-Host "[OpenClaude] Failed to resolve Gemini CLI credentials: $_" -ForegroundColor Red`,
           `  }`,
@@ -4922,9 +4930,7 @@ export async function POST(req: NextRequest) {
           `}`,
           `Remove-Item Env:CLAUDE_CODE_USE_OPENAI -ErrorAction SilentlyContinue`,
           `Remove-Item Env:CLAUDE_CODE_USE_GITHUB -ErrorAction SilentlyContinue`,
-          `Remove-Item Env:OPENAI_BASE_URL -ErrorAction SilentlyContinue`,
           `Remove-Item Env:OPENAI_MODEL -ErrorAction SilentlyContinue`,
-          `Remove-Item Env:OPENAI_API_KEY -ErrorAction SilentlyContinue`,
         ],
         deepseek: [
           `$env:CLAUDE_CODE_USE_OPENAI = '1'`,
@@ -5011,6 +5017,10 @@ export async function POST(req: NextRequest) {
         promptBlock,
         `'@`,
         `openclaude --dangerously-skip-permissions $prompt`,
+        `if ($proxyJob) {`,
+        `  Stop-Process -Id $proxyJob.Id -Force -ErrorAction SilentlyContinue`,
+        `  Write-Host '[OpenClaude] Stopped local Gemini OAuth proxy.' -ForegroundColor DarkGray`,
+        `}`,
       ];
 
       const ps1Path = path.join(projectPath, '.omni-openclaude-launch.ps1');
