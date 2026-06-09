@@ -4781,7 +4781,7 @@ export async function POST(req: NextRequest) {
 
       // Read existing .openclaude-profile.json if it exists
       const targetDir = resolvedProjectPath || projectPath;
-      const absoluteProxyPath = path.join(targetDir, '.omni-gemini-proxy.js').replace(/\\/g, '/');
+      const absoluteProxyPath = path.join(process.cwd(), '.omni-gemini-proxy.js').replace(/\\/g, '/');
       const profilePath = path.join(targetDir, '.openclaude-profile.json');
       let existingProfile: any = null;
       if (fs.existsSync(profilePath)) {
