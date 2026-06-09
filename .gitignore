@@ -65,3 +65,7 @@ AGENT_TASKS.md
 .factcheck-gemini.md
 .factcheck-codex.md
 FACT_CHECK_*.md
+
+# OpenClaude local profiles containing keys/tokens
+.openclaude-profile.json
+

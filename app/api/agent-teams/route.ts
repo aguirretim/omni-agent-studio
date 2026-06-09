@@ -4777,6 +4777,106 @@ export async function POST(req: NextRequest) {
       type OcProvider = typeof ALLOWED_PROVIDERS[number];
       const rawProvider = body.provider as string;
       const provider: OcProvider = ALLOWED_PROVIDERS.includes(rawProvider as OcProvider) ? (rawProvider as OcProvider) : 'gemini';
+      const apiKey = body.apiKey as string | undefined;
+
+      // Read existing .openclaude-profile.json if it exists
+      const targetDir = resolvedProjectPath || projectPath;
+      const profilePath = path.join(targetDir, '.openclaude-profile.json');
+      let existingProfile: any = null;
+      if (fs.existsSync(profilePath)) {
+        try {
+          existingProfile = JSON.parse(fs.readFileSync(profilePath, 'utf8'));
+        } catch {}
+      }
+
+      // Resolve keys/tokens
+      let resolvedGeminiKey = apiKey;
+
+      if (!resolvedGeminiKey && provider === 'gemini') {
+        const geminiOauthPath = path.join(os.homedir(), '.gemini', 'oauth_creds.json');
+        if (fs.existsSync(geminiOauthPath)) {
+          try {
+            let oauth = JSON.parse(fs.readFileSync(geminiOauthPath, 'utf8'));
+            const isExpired = oauth.expiry_date && (Date.now() > oauth.expiry_date - 60000); // 1 min buffer
+            if (isExpired && oauth.refresh_token) {
+              console.log('[agent-teams] Gemini token expired, running gemini CLI to refresh...');
+              try {
+                const { execSync } = await import('child_process');
+                execSync('gemini -p "READY"', { stdio: 'ignore', timeout: 5000 });
+                oauth = JSON.parse(fs.readFileSync(geminiOauthPath, 'utf8'));
+              } catch (refreshErr: any) {
+                console.error(`[agent-teams] Failed to refresh Gemini token via CLI: ${refreshErr.message}`);
+              }
+            }
+            resolvedGeminiKey = oauth.access_token;
+            console.log('[agent-teams] Resolved Gemini API key using OAuth access token from CLI');
+          } catch (oauthErr: any) {
+            console.error(`[agent-teams] Failed to read Gemini OAuth credentials: ${oauthErr.message}`);
+          }
+        }
+      }
+
+      if (!resolvedGeminiKey && provider === 'gemini') {
+        resolvedGeminiKey = existingProfile?.env?.GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+      }
+      const resolvedDeepseekKey = apiKey || existingProfile?.env?.OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+      const resolvedGithubToken = apiKey || existingProfile?.env?.GITHUB_TOKEN || process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+      const resolvedCodexAccountId = existingProfile?.env?.CHATGPT_ACCOUNT_ID || process.env.CHATGPT_ACCOUNT_ID || 'ee36d27d-1672-495e-846c-5d9b316e0821';
+
+      // Validate required keys/tokens
+      if (provider === 'gemini' && !resolvedGeminiKey) {
+        return NextResponse.json({ error: 'Gemini CLI OAuth credentials not found (please run "gemini" in terminal to authenticate), or provide a Gemini API Key in the input field.' }, { status: 400 });
+      }
+      if (provider === 'deepseek' && !resolvedDeepseekKey) {
+        return NextResponse.json({ error: 'DeepSeek API Key is required. Please provide it in the input field.' }, { status: 400 });
+      }
+      if (provider === 'github' && !resolvedGithubToken) {
+        return NextResponse.json({ error: 'GitHub Token is required. Please provide it in the input field.' }, { status: 400 });
+      }
+
+      // Build and write/update the profile file
+      const newProfile: any = {
+        profile: provider === 'deepseek' ? 'openai' : provider,
+        env: {},
+        createdAt: new Date().toISOString()
+      };
+
+      if (provider === 'gemini') {
+        newProfile.env = {
+          GEMINI_MODEL: 'gemini-2.0-flash'
+        };
+        // Only write API key to profile if explicitly provided by user (static key)
+        if (apiKey) {
+          newProfile.env.GEMINI_API_KEY = apiKey;
+        }
+      } else if (provider === 'deepseek') {
+        newProfile.env = {
+          OPENAI_BASE_URL: 'https://api.deepseek.com',
+          OPENAI_MODEL: 'deepseek-coder',
+          OPENAI_API_KEY: resolvedDeepseekKey
+        };
+      } else if (provider === 'github') {
+        newProfile.env = {
+          GITHUB_TOKEN: resolvedGithubToken
+        };
+      } else if (provider === 'codex') {
+        newProfile.env = {
+          OPENAI_BASE_URL: 'https://chatgpt.com/backend-api/codex',
+          OPENAI_MODEL: 'codexplan',
+          CHATGPT_ACCOUNT_ID: resolvedCodexAccountId
+        };
+      } else if (provider === 'ollama') {
+        newProfile.env = {
+          OPENAI_BASE_URL: 'http://localhost:11434/v1',
+          OPENAI_MODEL: 'qwen2.5-coder:7b'
+        };
+      }
+
+      try {
+        fs.writeFileSync(profilePath, JSON.stringify(newProfile, null, 2), 'utf8');
+      } catch (err: any) {
+        console.error(`Failed to write .openclaude-profile.json: ${err.message}`);
+      }
 
       // Provider-specific PowerShell env var lines
       const providerEnv: Record<OcProvider, string[]> = {
@@ -4784,18 +4884,55 @@ export async function POST(req: NextRequest) {
           `$env:CLAUDE_CODE_USE_OPENAI = '1'`,
           `$env:OPENAI_BASE_URL = 'https://chatgpt.com/backend-api/codex'`,
           `$env:OPENAI_MODEL = 'codexplan'`,
+          `$env:CHATGPT_ACCOUNT_ID = '${resolvedCodexAccountId}'`,
+          `Remove-Item Env:CLAUDE_CODE_USE_GEMINI -ErrorAction SilentlyContinue`,
+          `Remove-Item Env:CLAUDE_CODE_USE_GITHUB -ErrorAction SilentlyContinue`,
+          `Remove-Item Env:OPENAI_API_KEY -ErrorAction SilentlyContinue`,
         ],
-        gemini: [
+        gemini: apiKey ? [
+          `$env:CLAUDE_CODE_USE_GEMINI = '1'`,
+          `$env:GEMINI_MODEL = 'gemini-2.0-flash'`,
+          `$env:GEMINI_API_KEY = '${apiKey}'`,
           `Remove-Item Env:CLAUDE_CODE_USE_OPENAI -ErrorAction SilentlyContinue`,
+          `Remove-Item Env:CLAUDE_CODE_USE_GITHUB -ErrorAction SilentlyContinue`,
           `Remove-Item Env:OPENAI_BASE_URL -ErrorAction SilentlyContinue`,
           `Remove-Item Env:OPENAI_MODEL -ErrorAction SilentlyContinue`,
           `Remove-Item Env:OPENAI_API_KEY -ErrorAction SilentlyContinue`,
-          // Gemini auth is handled interactively via /provider inside openclaude
+        ] : [
+          `$env:CLAUDE_CODE_USE_GEMINI = '1'`,
+          `$env:GEMINI_MODEL = 'gemini-2.0-flash'`,
+          `$geminiOauthPath = Join-Path $env:USERPROFILE '.gemini\\oauth_creds.json'`,
+          `if (Test-Path $geminiOauthPath) {`,
+          `  try {`,
+          `    $oauth = Get-Content $geminiOauthPath -Raw | ConvertFrom-Json`,
+          `    $expiry = $oauth.expiry_date`,
+          `    $now = [System.DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()`,
+          `    if ($expiry -and ($now -gt ($expiry - 60000))) {`,
+          `      Write-Host '[OpenClaude] Gemini CLI token expired. Refreshing via gemini CLI...' -ForegroundColor Yellow`,
+          `      & gemini -p "READY" | Out-Null`,
+          `      $oauth = Get-Content $geminiOauthPath -Raw | ConvertFrom-Json`,
+          `    }`,
+          `    $env:GEMINI_API_KEY = $oauth.access_token`,
+          `    Write-Host '[OpenClaude] Authorized using Gemini CLI OAuth credentials.' -ForegroundColor Green`,
+          `  } catch {`,
+          `    Write-Host "[OpenClaude] Failed to resolve Gemini CLI credentials: $_" -ForegroundColor Red`,
+          `  }`,
+          `} else {`,
+          `  Write-Host '[OpenClaude] Warning: ~/.gemini/oauth_creds.json not found. Run \"gemini\" to authenticate.' -ForegroundColor Red`,
+          `}`,
+          `Remove-Item Env:CLAUDE_CODE_USE_OPENAI -ErrorAction SilentlyContinue`,
+          `Remove-Item Env:CLAUDE_CODE_USE_GITHUB -ErrorAction SilentlyContinue`,
+          `Remove-Item Env:OPENAI_BASE_URL -ErrorAction SilentlyContinue`,
+          `Remove-Item Env:OPENAI_MODEL -ErrorAction SilentlyContinue`,
+          `Remove-Item Env:OPENAI_API_KEY -ErrorAction SilentlyContinue`,
         ],
         deepseek: [
           `$env:CLAUDE_CODE_USE_OPENAI = '1'`,
           `$env:OPENAI_BASE_URL = 'https://api.deepseek.com'`,
           `$env:OPENAI_MODEL = 'deepseek-coder'`,
+          `$env:OPENAI_API_KEY = '${resolvedDeepseekKey}'`,
+          `Remove-Item Env:CLAUDE_CODE_USE_GEMINI -ErrorAction SilentlyContinue`,
+          `Remove-Item Env:CLAUDE_CODE_USE_GITHUB -ErrorAction SilentlyContinue`,
         ],
         ollama: [
           `$env:CLAUDE_CODE_USE_OPENAI = '1'`,
@@ -4803,13 +4940,18 @@ export async function POST(req: NextRequest) {
           `# Detect first installed Ollama model; fall back to qwen2.5-coder:7b`,
           `$_ollamaModel = (& ollama list 2>$null | Select-Object -Skip 1 | Where-Object { $_ -match ':' } | Select-Object -First 1 | ForEach-Object { ($_ -split '\\s+')[0] })`,
           `if ($_ollamaModel) { $env:OPENAI_MODEL = $_ollamaModel } else { $env:OPENAI_MODEL = 'qwen2.5-coder:7b' }`,
+          `Remove-Item Env:CLAUDE_CODE_USE_GEMINI -ErrorAction SilentlyContinue`,
+          `Remove-Item Env:CLAUDE_CODE_USE_GITHUB -ErrorAction SilentlyContinue`,
+          `Remove-Item Env:OPENAI_API_KEY -ErrorAction SilentlyContinue`,
         ],
         github: [
+          `$env:CLAUDE_CODE_USE_GITHUB = '1'`,
+          `$env:GITHUB_TOKEN = '${resolvedGithubToken}'`,
           `Remove-Item Env:CLAUDE_CODE_USE_OPENAI -ErrorAction SilentlyContinue`,
+          `Remove-Item Env:CLAUDE_CODE_USE_GEMINI -ErrorAction SilentlyContinue`,
           `Remove-Item Env:OPENAI_BASE_URL -ErrorAction SilentlyContinue`,
           `Remove-Item Env:OPENAI_MODEL -ErrorAction SilentlyContinue`,
           `Remove-Item Env:OPENAI_API_KEY -ErrorAction SilentlyContinue`,
-          // GitHub Models: use /onboard-github inside openclaude to configure
         ],
       };
 
@@ -4858,7 +5000,9 @@ export async function POST(req: NextRequest) {
         ...providerEnv[provider],
         `Write-Host ''`,
         `Write-Host '[OpenClaude] Provider: ${provider}' -ForegroundColor Magenta`,
-        `if ('${provider}' -eq 'ollama' -or '${provider}' -eq 'codex') {`,
+        `if ('${provider}' -eq 'gemini') {`,
+        `  Write-Host "[OpenClaude] Model: $env:GEMINI_MODEL  |  API: $env:GEMINI_BASE_URL" -ForegroundColor Cyan`,
+        `} else {`,
         `  Write-Host "[OpenClaude] Model: $env:OPENAI_MODEL  |  API: $env:OPENAI_BASE_URL" -ForegroundColor Cyan`,
         `}`,
         `Write-Host '[OpenClaude] Loaded task details and installed skills summary into the startup prompt.' -ForegroundColor DarkGray`,

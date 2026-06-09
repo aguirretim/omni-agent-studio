@@ -63,7 +63,20 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
   const [plan, setPlan] = useState('');
   const [terminalType, setTerminalType] = useState<'auto' | 'wt-tmux' | 'wt-ps' | 'cmd-ps'>('auto');
   const [openclaudeProvider, setOpenclaudeProvider] = useState<'codex' | 'gemini' | 'deepseek' | 'ollama' | 'github'>('gemini');
+  const [openclaudeApiKey, setOpenclaudeApiKey] = useState('');
   const [isLaunchingOc, setIsLaunchingOc] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedKey = localStorage.getItem(`omni-openclaude-key-${openclaudeProvider}`) || '';
+      setOpenclaudeApiKey(savedKey);
+    }
+  }, [openclaudeProvider]);
+
+  const handleApiKeyChange = (val: string) => {
+    setOpenclaudeApiKey(val);
+    localStorage.setItem(`omni-openclaude-key-${openclaudeProvider}`, val);
+  };
 
   const suggestedSkills = useMemo(() => {
     if (!plan.trim()) return [];
@@ -314,7 +327,13 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
       const res = await fetch('/api/agent-teams', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'launch-openclaude', projectPath, provider: openclaudeProvider }),
+        body: JSON.stringify({
+          action: 'launch-openclaude',
+          projectPath,
+          provider: openclaudeProvider,
+          apiKey: openclaudeApiKey.trim() || undefined,
+          plan: plan.trim() || undefined
+        }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -726,7 +745,7 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
                       <div role="group" aria-labelledby="oc-provider-label" className="flex items-center gap-1 flex-wrap">
                         {([
                           { value: 'codex',    label: 'Codex' },
-                          { value: 'gemini',   label: 'Gemini' },
+                          { value: 'gemini',   label: 'Gemini CLI (OAuth)' },
                           { value: 'deepseek', label: 'DeepSeek' },
                           { value: 'ollama',   label: 'Ollama' },
                           { value: 'github',   label: 'GitHub Models' },
@@ -744,6 +763,28 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
                         ))}
                       </div>
                     </div>
+
+                    {['gemini', 'deepseek', 'github'].includes(openclaudeProvider) && (
+                      <div className="flex flex-col gap-1.5">
+                        <label htmlFor="oc-api-key" className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wider">
+                          {openclaudeProvider === 'gemini' ? 'Gemini API Key (Optional)' : openclaudeProvider === 'deepseek' ? 'DeepSeek API Key' : 'GitHub Token'}
+                        </label>
+                        <input
+                          id="oc-api-key"
+                          type="password"
+                          value={openclaudeApiKey}
+                          onChange={e => handleApiKeyChange(e.target.value)}
+                          placeholder={
+                            openclaudeProvider === 'gemini'
+                              ? 'Leave blank to use Gemini CLI OAuth credentials'
+                              : openclaudeProvider === 'deepseek'
+                              ? 'sk-...'
+                              : 'ghp_...'
+                          }
+                          className="w-full bg-[var(--c-inset)] border border-[var(--c-border)] rounded-lg px-3 py-2 text-xs text-zinc-300 placeholder:text-zinc-600 focus:outline-none focus:border-purple-500/40 focus:ring-1 focus:ring-purple-500/20 transition-colors"
+                        />
+                      </div>
+                    )}
 
                     <p className="text-[10px] text-zinc-600 leading-relaxed">
                       OpenClaude brings Claude Code-style agentic workflows to other providers. Pick a provider, reuse the same task details from above, and launch a second agent terminal that preloads your project context plus the full installed skill library from <code className="text-zinc-500">.claude/commands/</code>.

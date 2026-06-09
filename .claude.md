@@ -315,6 +315,8 @@ No reminder needed — this is automatic, like saving a file.
 - [x] Implement Ralph autonomous loop: /ralph, /create-prd, /convert-prd skills + Ralph page + app/api/ralph/route.ts
 - [x] Simplify Ralph to use shared context Active Goals — no prd.json, no PRD workflow required
 - [x] Auto-select best skills in /build-with-agent-team: Phase 0.5 taxonomy, plan textarea in Launch tab, live suggested-skills panel
+- [x] Fix OpenClaude provider switching and Gemini integration by adding API Key input fields in the UI and dynamically writing .openclaude-profile.json
+- [x] Support Google CLI OAuth token resolution for OpenClaude's Gemini provider to run using CLI authorization instead of API keys
 
 ## Session Log
 - 2026-03-18 · Initial redesign — decomposed 617-line page.tsx into routed pages + components per DESIGN_SPEC.md
@@ -415,3 +417,4 @@ No reminder needed — this is automatic, like saving a file.
 - 2026-04-06 · fix: openclaude Gemini auth (1 patch to @gitlawb/openclaude/dist/cli.mjs) · createAPIClient: Gemini was not included in the OpenAI shim condition, falling through to Anthropic SDK → added `|| isEnvTruthy(process.env.CLAUDE_CODE_USE_GEMINI)` to the shim check · Root cause of remaining 401: Gemini OpenAI-compat endpoint only accepts API keys (AIzaSy...), not OAuth tokens (ya29...) — they are different auth paths · .openclaude-profile.json: restored GEMINI_API_KEY; OAuth approach reverted (incompatible with OpenAI-compat endpoint)
 - 2026-04-06 · fix: Ollama terminal closes after half a second · Root cause: ollama serve exits immediately when port 11434 is already bound (Ollama runs as a Windows background service after install) · Fix: bat+ps1 now check curl http://localhost:11434 before calling ollama serve; if already running, show message + pause; add pause after exit so terminal never silently closes
 - 2026-04-28 · /fix · Fix terminal and agent teams launch failing because explorer.exe opens .bat files in text editors instead of executing them · Replaced all explorer.exe spawn calls in terminal/route.ts and agent-teams/route.ts with PowerShell Start-Process calls to bypass .bat associations while preserving Explorer process lineage · cost ~$0.00
+- 2026-06-09 · /fix-gemini-integration · Configured OpenClaude Gemini provider to use dynamic Google CLI OAuth token resolution and auto-refresh in PowerShell launch script, omitting it from the profile JSON to prevent expiry. Added API Key inputs for OpenClaude, added dynamic .openclaude-profile.json generation, and gitignored the profile file · cost ~$0.00
