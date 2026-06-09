@@ -29,6 +29,31 @@ function getAccessToken() {
   return oauth.access_token;
 }
 
+// Recursive helper to clean JSON Schema to only keys supported by Gemini API
+function cleanSchema(schema) {
+  if (!schema || typeof schema !== 'object') return schema;
+  
+  const allowedKeys = ['type', 'format', 'description', 'nullable', 'properties', 'required', 'items', 'enum'];
+  const cleaned = {};
+  
+  for (const key of allowedKeys) {
+    if (schema[key] !== undefined) {
+      if (key === 'properties' && typeof schema.properties === 'object') {
+        cleaned.properties = {};
+        for (const [propName, propSchema] of Object.entries(schema.properties)) {
+          cleaned.properties[propName] = cleanSchema(propSchema);
+        }
+      } else if (key === 'items' && typeof schema.items === 'object') {
+        cleaned.items = cleanSchema(schema.items);
+      } else {
+        cleaned[key] = schema[key];
+      }
+    }
+  }
+  
+  return cleaned;
+}
+
 // Map OpenAI messages to Gemini format
 function mapMessages(openaiMessages) {
   const contents = [];
@@ -41,8 +66,20 @@ function mapMessages(openaiMessages) {
     }
 
     const parts = [];
-    if (msg.content) {
-      parts.push({ text: msg.content });
+    if (msg.content && msg.role !== 'tool') {
+      if (typeof msg.content === 'string') {
+        parts.push({ text: msg.content });
+      } else if (Array.isArray(msg.content)) {
+        for (const part of msg.content) {
+          if (typeof part === 'string') {
+            parts.push({ text: part });
+          } else if (part && typeof part === 'object') {
+            if (part.type === 'text' && typeof part.text === 'string') {
+              parts.push({ text: part.text });
+            }
+          }
+        }
+      }
     }
 
     // Map tool calls from assistant to Gemini functionCall
@@ -106,7 +143,7 @@ function mapTools(openaiTools) {
       functionDeclarations.push({
         name: t.function.name,
         description: t.function.description || '',
-        parameters: t.function.parameters
+        parameters: cleanSchema(t.function.parameters)
       });
     }
   }
