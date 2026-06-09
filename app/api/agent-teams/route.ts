@@ -5002,6 +5002,7 @@ export async function POST(req: NextRequest) {
       ].join('\n');
       const ps1Lines = [
         `$env:PATH = [System.Environment]::GetEnvironmentVariable('PATH','User') + ';' + [System.Environment]::GetEnvironmentVariable('PATH','Machine')`,
+        `$env:USE_BUILTIN_RIPGREP = '0'`,
         `Set-Location '${safeProjectPath}'`,
         ...providerEnv[provider],
         `Write-Host ''`,
