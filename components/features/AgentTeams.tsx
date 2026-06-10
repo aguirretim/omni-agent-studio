@@ -745,7 +745,7 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
                       <div role="group" aria-labelledby="oc-provider-label" className="flex items-center gap-1 flex-wrap">
                         {([
                           { value: 'codex',    label: 'Codex' },
-                          { value: 'gemini',   label: 'Gemini CLI (OAuth)' },
+                          { value: 'gemini',   label: 'Antigravity CLI (OAuth)' },
                           { value: 'deepseek', label: 'DeepSeek' },
                           { value: 'ollama',   label: 'Ollama' },
                           { value: 'github',   label: 'GitHub Models' },
@@ -776,7 +776,7 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
                           onChange={e => handleApiKeyChange(e.target.value)}
                           placeholder={
                             openclaudeProvider === 'gemini'
-                              ? 'Leave blank to use Gemini CLI OAuth credentials'
+                              ? 'Leave blank to use Antigravity CLI OAuth credentials'
                               : openclaudeProvider === 'deepseek'
                               ? 'sk-...'
                               : 'ghp_...'

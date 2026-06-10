@@ -4800,13 +4800,18 @@ export async function POST(req: NextRequest) {
             let oauth = JSON.parse(fs.readFileSync(geminiOauthPath, 'utf8'));
             const isExpired = oauth.expiry_date && (Date.now() > oauth.expiry_date - 60000); // 1 min buffer
             if (isExpired && oauth.refresh_token) {
-              console.log('[agent-teams] Gemini token expired, running gemini CLI to refresh...');
+              console.log('[agent-teams] Gemini/Antigravity token expired, running CLI to refresh...');
               try {
                 const { execSync } = await import('child_process');
-                execSync('gemini -p "READY"', { stdio: 'ignore', timeout: 5000 });
+                const agyBinPath = path.join(os.homedir(), 'AppData', 'Local', 'agy', 'bin', 'agy.exe');
+                if (fs.existsSync(agyBinPath)) {
+                  execSync(`"${agyBinPath}" -p "READY" --dangerously-skip-permissions`, { stdio: 'ignore', timeout: 8000 });
+                } else {
+                  execSync('gemini -p "READY"', { stdio: 'ignore', timeout: 5000 });
+                }
                 oauth = JSON.parse(fs.readFileSync(geminiOauthPath, 'utf8'));
               } catch (refreshErr: any) {
-                console.error(`[agent-teams] Failed to refresh Gemini token via CLI: ${refreshErr.message}`);
+                console.error(`[agent-teams] Failed to refresh Gemini/Antigravity token via CLI: ${refreshErr.message}`);
               }
             }
             resolvedGeminiKey = oauth.access_token;
@@ -4826,7 +4831,7 @@ export async function POST(req: NextRequest) {
 
       // Validate required keys/tokens
       if (provider === 'gemini' && !resolvedGeminiKey) {
-        return NextResponse.json({ error: 'Gemini CLI OAuth credentials not found (please run "gemini" in terminal to authenticate), or provide a Gemini API Key in the input field.' }, { status: 400 });
+        return NextResponse.json({ error: 'Antigravity / Gemini CLI OAuth credentials not found (please run "agy" or "gemini" in terminal to authenticate), or provide a Gemini API Key in the input field.' }, { status: 400 });
       }
       if (provider === 'deepseek' && !resolvedDeepseekKey) {
         return NextResponse.json({ error: 'DeepSeek API Key is required. Please provide it in the input field.' }, { status: 400 });
@@ -4909,24 +4914,29 @@ export async function POST(req: NextRequest) {
           `    $expiry = $oauth.expiry_date`,
           `    $now = [System.DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()`,
           `    if ($expiry -and ($now -gt ($expiry - 60000))) {`,
-          `      Write-Host '[OpenClaude] Gemini CLI token expired. Refreshing via gemini CLI...' -ForegroundColor Yellow`,
-          `      & gemini -p "READY" | Out-Null`,
+          `      Write-Host '[OpenClaude] Token expired. Refreshing via Antigravity CLI...' -ForegroundColor Yellow`,
+          `      $agyBin = Join-Path $env:LOCALAPPDATA "agy\\bin\\agy.exe"`,
+          `      if (Test-Path $agyBin) {`,
+          `        & $agyBin -p "READY" --dangerously-skip-permissions | Out-Null`,
+          `      } else {`,
+          `        & gemini -p "READY" | Out-Null`,
+          `      }`,
           `    }`,
           `    $proxyPath = '${absoluteProxyPath}'`,
           `    if (Test-Path $proxyPath) {`,
-          `      Write-Host '[OpenClaude] Starting local Gemini OAuth proxy...' -ForegroundColor Green`,
+          `      Write-Host '[OpenClaude] Starting local Gemini/Antigravity OAuth proxy...' -ForegroundColor Green`,
           `      $proxyJob = Start-Process node -ArgumentList $proxyPath -WindowStyle Hidden -PassThru`,
           `      $env:GEMINI_BASE_URL = 'http://localhost:4007/v1beta/openai'`,
           `      $env:GEMINI_API_KEY = 'dummy_key'`,
-          `      Write-Host '[OpenClaude] Authorized using Gemini CLI OAuth credentials.' -ForegroundColor Green`,
+          `      Write-Host '[OpenClaude] Authorized using Gemini/Antigravity CLI OAuth credentials.' -ForegroundColor Green`,
           `    } else {`,
           `      Write-Host "[OpenClaude] Error: .omni-gemini-proxy.js not found at $proxyPath" -ForegroundColor Red`,
           `    }`,
           `  } catch {`,
-          `    Write-Host "[OpenClaude] Failed to resolve Gemini CLI credentials: $_" -ForegroundColor Red`,
+          `    Write-Host "[OpenClaude] Failed to resolve CLI credentials: $_" -ForegroundColor Red`,
           `  }`,
           `} else {`,
-          `  Write-Host '[OpenClaude] Warning: ~/.gemini/oauth_creds.json not found. Run \"gemini\" to authenticate.' -ForegroundColor Red`,
+          `  Write-Host '[OpenClaude] Warning: ~/.gemini/oauth_creds.json not found. Run \"agy\" or \"gemini\" to authenticate.' -ForegroundColor Red`,
           `}`,
           `Remove-Item Env:CLAUDE_CODE_USE_OPENAI -ErrorAction SilentlyContinue`,
           `Remove-Item Env:CLAUDE_CODE_USE_GITHUB -ErrorAction SilentlyContinue`,
