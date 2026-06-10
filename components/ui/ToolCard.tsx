@@ -25,6 +25,7 @@ const chipStyle: Record<string, string> = {
   'text-purple-400': 'bg-purple-500/10 border-purple-500/20 text-purple-400',
   'text-teal-400':   'bg-teal-500/10 border-teal-500/20 text-teal-400',
   'text-violet-400': 'bg-violet-500/10 border-violet-500/20 text-violet-400',
+  'text-pink-400':   'bg-pink-500/10 border-pink-500/20 text-pink-400',
 };
 
 export default function ToolCard({

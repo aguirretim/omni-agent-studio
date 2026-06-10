@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     const isWindows = os.platform() === 'win32';
 
     // Safety list of allowed commands
-    const allowedCommands = ['claude', 'gemini', 'opencode', 'codex', 'openclaude', 'ollama', 'mirofish'];
+    const allowedCommands = ['claude', 'gemini', 'opencode', 'codex', 'openclaude', 'ollama', 'mirofish', 'antigravity'];
     if (!allowedCommands.includes(command)) {
        return NextResponse.json({ error: 'Command not in whitelist' }, { status: 403 });
     }
@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
         openclaude: 'npm install -g @gitlawb/openclaude',
         ollama: 'winget install Ollama.Ollama',
         mirofish: 'winget install Docker.DockerDesktop',
+        antigravity: 'echo Antigravity IDE not found. Please download it from https://antigravity.dev',
       };
       const binaryName: Record<string, string> = {
         claude: 'claude',
@@ -56,10 +57,13 @@ export async function POST(req: NextRequest) {
         openclaude: 'openclaude',
         ollama: 'ollama',
         mirofish: 'docker',
+        antigravity: 'antigravity-ide',
       };
       const installCmd = installCommands[command];
       const bin = binaryName[command] || command;
-      const launchCmd = `${bin}${command === 'claude' ? ' --dangerously-skip-permissions' : ''}`;
+      const launchCmd = command === 'antigravity'
+        ? `${bin} chat`
+        : `${bin}${command === 'claude' ? ' --dangerously-skip-permissions' : ''}`;
 
       // Full custom bat/ps1 scripts for tools that need more than a single launch line.
       // Each entry is the complete list of lines written to the script file.

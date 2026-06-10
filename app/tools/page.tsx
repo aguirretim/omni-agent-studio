@@ -99,6 +99,19 @@ const tools = [
     tags: ['Multi-agent swarm', 'Knowledge graph', 'Prediction reports', 'Docker', 'LLM-agnostic'],
     billingUrl: 'https://github.com/666ghj/MiroFish',
   },
+  {
+    id: 'antigravity',
+    name: 'Antigravity CLI',
+    command: 'antigravity',
+    icon: 'AG',
+    color: 'text-pink-400',
+    bgColor: 'bg-pink-400/10',
+    hoverBorder: 'hover:border-pink-500/50',
+    description: 'Antigravity IDE Agentic Chat session',
+    detail: "Launches the Antigravity IDE agentic chat mode in your current workspace directory. Enables autonomous code modifications, code explanation, and workspace-aware chats. It starts the IDE with an active agent session focused on your project files.",
+    tags: ['Agent mode', 'IDE integration', 'Workspace chat', 'Autonomous edit'],
+    billingUrl: 'https://antigravity.dev',
+  },
 ];
 
 export default function ToolsPage() {
