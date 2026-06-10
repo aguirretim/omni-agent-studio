@@ -100,17 +100,17 @@ const tools = [
     billingUrl: 'https://github.com/666ghj/MiroFish',
   },
   {
-    id: 'antigravity',
+    id: 'agy',
     name: 'Antigravity CLI',
-    command: 'antigravity',
+    command: 'agy',
     icon: 'AG',
     color: 'text-pink-400',
     bgColor: 'bg-pink-400/10',
     hoverBorder: 'hover:border-pink-500/50',
-    description: 'Antigravity IDE Agentic Chat session',
-    detail: "Launches the Antigravity IDE agentic chat mode in your current workspace directory. Enables autonomous code modifications, code explanation, and workspace-aware chats. It starts the IDE with an active agent session focused on your project files.",
-    tags: ['Agent mode', 'IDE integration', 'Workspace chat', 'Autonomous edit'],
-    billingUrl: 'https://antigravity.dev',
+    description: 'Google’s terminal-based agentic CLI',
+    detail: "Google's terminal-based agentic development interface. Built in Go, it features an interactive Terminal User Interface (TUI) for multi-file editing, prompt execution, and agent operations directly in your terminal. It replaces the legacy Gemini CLI. Runs offline and automatically handles permissions.",
+    tags: ['Terminal TUI', 'Go-based', 'Multi-file edits', 'Autonomous agent'],
+    billingUrl: 'https://antigravity.google/cli',
   },
 ];
 

@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     const isWindows = os.platform() === 'win32';
 
     // Safety list of allowed commands
-    const allowedCommands = ['claude', 'gemini', 'opencode', 'codex', 'openclaude', 'ollama', 'mirofish', 'antigravity'];
+    const allowedCommands = ['claude', 'gemini', 'opencode', 'codex', 'openclaude', 'ollama', 'mirofish', 'agy'];
     if (!allowedCommands.includes(command)) {
        return NextResponse.json({ error: 'Command not in whitelist' }, { status: 403 });
     }
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
         openclaude: 'npm install -g @gitlawb/openclaude',
         ollama: 'winget install Ollama.Ollama',
         mirofish: 'winget install Docker.DockerDesktop',
-        antigravity: 'echo Antigravity IDE not found. Please download it from https://antigravity.dev',
+        agy: 'powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://antigravity.google/cli/install.ps1 | iex"',
       };
       const binaryName: Record<string, string> = {
         claude: 'claude',
@@ -57,13 +57,13 @@ export async function POST(req: NextRequest) {
         openclaude: 'openclaude',
         ollama: 'ollama',
         mirofish: 'docker',
-        antigravity: 'antigravity-ide',
+        agy: 'agy',
       };
       const installCmd = installCommands[command];
       const bin = binaryName[command] || command;
-      const launchCmd = command === 'antigravity'
-        ? `${bin} chat`
-        : `${bin}${command === 'claude' ? ' --dangerously-skip-permissions' : ''}`;
+      const launchCmd = command === 'claude' || command === 'agy'
+        ? `${bin} --dangerously-skip-permissions`
+        : bin;
 
       // Full custom bat/ps1 scripts for tools that need more than a single launch line.
       // Each entry is the complete list of lines written to the script file.
@@ -146,6 +146,27 @@ export async function POST(req: NextRequest) {
           `echo.`,
           `echo Ollama stopped. It may already be running in the background.`,
           `pause`,
+        ],
+        agy: [
+          '@echo off',
+          `cd /d "${resolvedPath}"`,
+          `set "AGY_BIN_PATH=%LOCALAPPDATA%\\agy\\bin"`,
+          `where agy >nul 2>nul || (`,
+          `  if exist "%AGY_BIN_PATH%\\agy.exe" (`,
+          `    set "PATH=%PATH%;%AGY_BIN_PATH%"`,
+          `  ) else (`,
+          `    echo Antigravity CLI is not installed. Auto-installing...`,
+          `    powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://antigravity.google/cli/install.ps1 | iex"`,
+          `    if exist "%AGY_BIN_PATH%\\agy.exe" (`,
+          `      set "PATH=%PATH%;%AGY_BIN_PATH%"`,
+          `    ) else (`,
+          `      echo Installation failed. Please install manually.`,
+          `      pause`,
+          `      exit /b 1`,
+          `    )`,
+          `  )`,
+          `)`,
+          `agy --dangerously-skip-permissions`,
         ],
       };
 
@@ -234,6 +255,26 @@ export async function POST(req: NextRequest) {
           `Write-Host ""`,
           `Write-Host "Ollama stopped. It may already be running in the background." -ForegroundColor Yellow`,
           `Read-Host "Press Enter to close"`,
+        ],
+        agy: [
+          `Set-Location "${resolvedPath}"`,
+          `$agyBin = Join-Path $env:LOCALAPPDATA "agy\bin"`,
+          `if (-not (Get-Command 'agy' -ErrorAction SilentlyContinue)) {`,
+          `  if (Test-Path (Join-Path $agyBin "agy.exe")) {`,
+          `    $env:PATH += ";$agyBin"`,
+          `  } else {`,
+          `    Write-Host "Antigravity CLI is not installed. Auto-installing..." -ForegroundColor Yellow`,
+          `    try {`,
+          `      irm https://antigravity.google/cli/install.ps1 | iex`,
+          `      $env:PATH += ";$agyBin"`,
+          `    } catch {`,
+          `      Write-Host "Installation failed: $_" -ForegroundColor Red`,
+          `      Read-Host "Press Enter to exit"`,
+          `      exit 1`,
+          `    }`,
+          `  }`,
+          `}`,
+          `agy --dangerously-skip-permissions`,
         ],
       };
 
