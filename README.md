@@ -7,6 +7,9 @@ website, the AI runs directly on your computer inside your project folder -- whi
 actually see and edit your files. This app lets you run multiple AI assistants at the same time,
 all sharing the same instructions so they stay in sync with each other.
 
+![OmniAgent Studio home dashboard](docs/screenshot.png)
+*The home dashboard: sidebar navigation, the workspace connector, and the getting-started guide (shown in its unconnected empty state).*
+
 ---
 
 ## Before you start -- what you need
