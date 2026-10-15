@@ -92,6 +92,12 @@ const ONE_CLICK: McpServer[] = [
     detail: 'Exa’s hosted search server: two tools (search and fetch), no account and no key for normal use. A solid second search engine for when a keyed one runs out of quota. Your queries go to Exa.',
     docsUrl: 'https://github.com/exa-labs/exa-mcp-server',
   },
+  {
+    id: 'mcp-email-server', name: 'Email (IMAP: Yahoo, Outlook, any)', publisher: 'Wh1isper · community · BSD-3', tier: 'situational',
+    category: 'Read any IMAP mailbox · read-only option',
+    detail: 'Lets an agent search and read mail in any IMAP account (Yahoo, Outlook, iCloud…). Connecting here only registers the server: add the account yourself by running "uvx mcp-email-server==1.13.1 ui", use an app password (not your real one), skip the outgoing-mail section and set allowed mutations to none for read-only. On Windows the password is kept in a local database file. Needs uv. Pinned to 1.13.1.',
+    docsUrl: 'https://github.com/Wh1isper/mcp-email-server',
+  },
 ];
 
 // ── Claude Code plugins: skills that install with one click ────────────────

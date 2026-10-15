@@ -23,6 +23,8 @@ const CONNECTORS: Record<string, string[]> = {
   'chrome-devtools':     ['npx', '-y', 'chrome-devtools-mcp@latest'],
   // Pinned on purpose: the version that was tested. Needs uv (uvx) on PATH.
   scrapling:             ['uvx', '--from', SCRAPLING_PKG, 'scrapling-mcp'],
+  // Pinned on purpose. Accounts and passwords are added in its own local UI, never here.
+  'mcp-email-server':    ['uvx', 'mcp-email-server==1.13.1', 'stdio'],
 };
 
 /** One-time setup run before a connector is added (fixed strings, no user input). */
@@ -109,7 +111,7 @@ const URL_RE = /^https?:\/\/[A-Za-z0-9.\-]+(:\d+)?(\/[A-Za-z0-9._\-\/]*)?$/;
 
 const KNOWN_IDS = [
   'context7', 'filesystem', 'memory', 'sequential-thinking', 'mobile',
-  'youtube-transcript', 'playwright', 'chrome-devtools', 'scrapling', 'exa',
+  'youtube-transcript', 'playwright', 'chrome-devtools', 'scrapling', 'exa', 'mcp-email-server',
   'github', 'firecrawl', 'tavily', 'apify', 'searxng',
   'postgres', 'notion', 'n8n', 'discord',
 ];
