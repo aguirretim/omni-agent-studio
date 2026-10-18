@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Plug, Check, Loader2, KeyRound, ExternalLink, ShieldAlert, RefreshCw, X, Sparkles } from 'lucide-react';
+import { Plug, Check, Loader2, KeyRound, ExternalLink, ShieldAlert, RefreshCw, X, Sparkles, Briefcase } from 'lucide-react';
 import { useWorkspace } from '@/components/layout/WorkspaceProvider';
 
 type Tier = 'must' | 'strong' | 'situational';
@@ -100,6 +100,43 @@ const ONE_CLICK: McpServer[] = [
   },
 ];
 
+// ── Job search: find postings, never apply ─────────────────────────────────
+// Checked 18 Oct 2026. Nothing here submits an application: every tool that does
+// either drives a browser on sites whose terms forbid it or routes your résumé
+// through a third party. You still apply on the employer's own page.
+interface JobTool extends McpServer {
+  via: 'oneclick' | 'claudeai';
+  claudeAiUrl?: string;  // for 'claudeai': the connector's page in the Claude directory
+}
+const JOB_SEARCH: JobTool[] = [
+  {
+    id: 'openings-mcp', via: 'oneclick', name: 'openings-mcp', publisher: 'amikai · community · MIT', tier: 'must',
+    category: 'Employer job boards directly · no sign-in',
+    detail: 'Searches employers’ own job systems (Workday, iCIMS, Greenhouse, Lever, Ashby, Oracle, UKG and more) plus Amazon, Apple, Google and Meta careers. That is where hospitals, universities and public employers post. Connect downloads release v0.16.2 (about 8 MB), checks it against the published checksum, and blocks its LinkedIn and Indeed tools, which scrape those sites against their terms. It has no rate limit, so keep searches small.',
+    docsUrl: 'https://github.com/amikai/openings-mcp',
+  },
+  {
+    id: 'dice', via: 'oneclick', name: 'Dice', publisher: 'DHI Group · official · hosted', tier: 'situational',
+    category: 'Tech job search · no sign-in',
+    detail: 'Dice’s own job-search server: search jobs, job details, company. Tech and QA roles only. Filter to Direct Hire to skip staffing agencies. Your searches go to Dice.',
+    docsUrl: 'https://dhigroupinc.com/press/press-release-details/2026/Tech-Professionals-Find-Relevant-Roles-Faster-with-Dices-LLM-Connector/default.aspx',
+  },
+  {
+    id: 'indeed', via: 'claudeai', name: 'Indeed', publisher: 'Indeed · official · beta', tier: 'must',
+    category: 'Biggest US job board · needs your Indeed sign-in',
+    detail: 'Indeed’s official connector: job search, job details and company data (reviews, pay). It is the one AI route Indeed’s terms allow. It can also read your Indeed résumé once you sign in. Add it on claude.ai: it then appears in Claude Code too. Read Indeed’s privacy policy first; many listings are agency reposts, so check the employer’s own page.',
+    docsUrl: 'https://docs.indeed.com/mcp',
+    claudeAiUrl: 'https://claude.com/marketplace/connectors/indeed',
+  },
+  {
+    id: 'ziprecruiter', via: 'claudeai', name: 'ZipRecruiter', publisher: 'ZipRecruiter · official', tier: 'strong',
+    category: 'Job search · no sign-in',
+    detail: 'ZipRecruiter’s official connector: one search tool, no account needed. Add it on claude.ai (a direct connection from this PC was refused with “too many requests”). Listings are often reposts, so follow through to the employer.',
+    docsUrl: 'https://ziprecruiter-investors.com/news/news-details/2026/ZipRecruiter-Expands-AI-Powered-Job-Search-with-Claude-Integration/default.aspx',
+    claudeAiUrl: 'https://claude.com/marketplace/connectors/ziprecruiter',
+  },
+];
+
 // ── Claude Code plugins: skills that install with one click ────────────────
 // Each was fact-checked (what it installs, what it runs, what it costs in context).
 interface PluginItem {
@@ -144,6 +181,11 @@ const LEFT_OUT: { name: string; why: string }[] = [
   { name: 'Memvid / claude-brain', why: 'No update since January 2026; freezes Claude Code on Windows and breaks on Node 24.' },
   { name: 'Lightpanda, auto-browser', why: 'No native Windows build / needs Docker. Playwright already covers browser control.' },
   { name: 'OpenClaude, claw-code', why: 'OpenClaude’s own licence says it has no right to distribute the source; claw-code’s authors call it a museum exhibit.' },
+  { name: 'AIHawk (Jobs Applier AI Agent)', why: 'Gone: its GitHub address now points to an unrelated “undetectable by anti-bot systems” project. Guides that recommend it are out of date.' },
+  { name: 'Pickle-Pixel ApplyPilot (auto-apply)', why: 'Auto-submits through Claude Code + Playwright with CAPTCHA solving; an open report says every résumé it uploaded in a real run was near blank. Not related to your own ApplyPilot.' },
+  { name: 'GodsScion LinkedIn auto-applier', why: 'Keeps your LinkedIn password in a plain file and breaks LinkedIn’s User Agreement 8.2 (bots), which LinkedIn enforces with account restrictions.' },
+  { name: 'JobSpy and its MCP wrappers', why: 'Scrapes Indeed, LinkedIn and Glassdoor against their terms; ships proxy support “to bypass blocking”.' },
+  { name: 'JobGPT, Shortlist and other auto-apply MCPs', why: 'Submit applications for you without your review and send your résumé to a third party.' },
 ];
 
 // ── Group 2: keyed — click Connect, paste a token, done ─────────────────────
@@ -469,6 +511,62 @@ export default function McpPage() {
                       {server.publisher} <ExternalLink size={9} />
                     </a>
                     {isConnected ? <ConnectedPill /> : (
+                      <button
+                        onClick={() => connect(server)}
+                        disabled={isBusy}
+                        className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-200 px-3 py-1.5 rounded-lg bg-zinc-700 hover:bg-zinc-600 border border-zinc-600 hover:border-zinc-500 transition-colors disabled:opacity-60 disabled:cursor-wait"
+                      >
+                        {isBusy ? <><Loader2 size={13} className="animate-spin" /> Connecting</> : <><Plug size={13} /> Connect</>}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Job search — finds postings, never applies */}
+        <section className="flex flex-col gap-3">
+          <div className="text-[11px] font-semibold tracking-widest text-zinc-500 uppercase flex items-center gap-2">
+            <Briefcase size={12} /> Job search · finds jobs, never applies
+          </div>
+          <p className="text-[12px] text-zinc-500 leading-relaxed -mt-1">
+            No tool can submit applications for you within the job sites’ rules, so these only find postings.
+            Open the employer’s own page, tailor the résumé, and press Submit yourself. Checked 18 Oct 2026.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {JOB_SEARCH.map(server => {
+              const isConnected = status[server.id] === 'connected';
+              const isBusy = busy === server.id;
+              return (
+                <div key={server.id} className="flex flex-col gap-3 p-4 rounded-xl bg-[var(--c-inset)] border border-[var(--c-border)] shadow-sm">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex flex-col">
+                      <div className="text-sm font-semibold text-zinc-200">{server.name}</div>
+                      <div className="text-[11px] text-zinc-500 mt-0.5">{server.category}</div>
+                    </div>
+                    <TierBadge tier={server.tier} />
+                  </div>
+                  <p className="text-[11px] text-zinc-500 leading-relaxed flex-1">{server.detail}</p>
+                  {server.via === 'claudeai' && !isConnected && (
+                    <p className="text-[10px] text-zinc-500 leading-relaxed bg-zinc-800/40 border border-[var(--c-border)] rounded-md p-2">
+                      Click “Add on claude.ai”, then Connect on that page (signed in to claude.ai). Come back and press Refresh: it shows as connected once Claude Code can see it.
+                    </p>
+                  )}
+                  <div className="flex items-center justify-between gap-2">
+                    <a href={server.docsUrl} target="_blank" rel="noopener noreferrer"
+                       className="text-[10px] text-zinc-500 hover:text-zinc-300 flex items-center gap-1 transition-colors">
+                      {server.publisher} <ExternalLink size={9} />
+                    </a>
+                    {isConnected ? <ConnectedPill /> : server.via === 'claudeai' ? (
+                      <a
+                        href={server.claudeAiUrl} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-200 px-3 py-1.5 rounded-lg bg-zinc-700 hover:bg-zinc-600 border border-zinc-600 hover:border-zinc-500 transition-colors"
+                      >
+                        <ExternalLink size={13} /> Add on claude.ai
+                      </a>
+                    ) : (
                       <button
                         onClick={() => connect(server)}
                         disabled={isBusy}

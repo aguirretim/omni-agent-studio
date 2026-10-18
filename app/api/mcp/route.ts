@@ -3,6 +3,8 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
 import os from 'os';
+import fs from 'fs';
+import crypto from 'crypto';
 
 const execAsync = promisify(exec);
 
@@ -40,6 +42,74 @@ const PREPARE: Record<string, { needs: string; needsHint: string; command: strin
 /** Hosted servers reached over HTTP — no local process, no key. */
 const HTTP_CONNECTORS: Record<string, string> = {
   exa: 'https://mcp.exa.ai/mcp',
+  // Dice's official job-search server (DHI Group). Search only, no sign-in.
+  dice: 'https://mcp.dice.com/mcp',
+};
+
+/**
+ * openings-mcp: a pinned release binary, downloaded once and checked against the
+ * SHA-256 published on its GitHub release before it is unpacked.
+ * Its LinkedIn and Indeed tools scrape sites whose terms forbid it, so they are
+ * added to Claude Code's permission deny list; the company/ATS tools stay usable.
+ */
+const OPENINGS = {
+  url: 'https://github.com/amikai/openings-mcp/releases/download/v0.16.2/openings-mcp_windows_amd64.zip',
+  sha256: '88afcced5d3d8009d5ab1f8867ac92c3d87dd0974f8f31f86416c6d3cd0bbb6c',
+  dir: path.join(process.env.LOCALAPPDATA ?? path.join(os.homedir(), 'AppData', 'Local'), 'Programs', 'openings-mcp'),
+  deny: [
+    'mcp__openings-mcp__linkedin_search_jobs',
+    'mcp__openings-mcp__linkedin_get_job_detail',
+    'mcp__openings-mcp__indeed_search_jobs',
+    'mcp__openings-mcp__indeed_get_job_detail',
+  ],
+};
+
+async function installOpenings(): Promise<string> {
+  if (process.platform !== 'win32') throw new Error('This one-click install is for Windows. See the project README for other systems.');
+  const exe = path.join(OPENINGS.dir, 'openings-mcp.exe');
+  if (!fs.existsSync(exe)) {
+    const res = await fetch(OPENINGS.url);
+    if (!res.ok) throw new Error(`Download failed (HTTP ${res.status}).`);
+    const buf = Buffer.from(await res.arrayBuffer());
+    const got = crypto.createHash('sha256').update(buf).digest('hex');
+    if (got !== OPENINGS.sha256) throw new Error('Download did not match the published checksum, so it was not installed.');
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'openings-'));
+    const zip = path.join(tmp, 'openings-mcp.zip');
+    fs.writeFileSync(zip, buf);
+    fs.mkdirSync(OPENINGS.dir, { recursive: true });
+    await execAsync(
+      `powershell -NoProfile -Command "Expand-Archive -LiteralPath '${zip}' -DestinationPath '${OPENINGS.dir}' -Force"`,
+      { timeout: 120_000 },
+    );
+    fs.rmSync(tmp, { recursive: true, force: true });
+    if (!fs.existsSync(exe)) throw new Error('Unpacked, but openings-mcp.exe was not found.');
+  }
+  return exe;
+}
+
+/** Adds rules to ~/.claude/settings.json permissions.deny. Never overwrites a file it cannot parse. */
+function addDenyRules(rules: string[]): void {
+  const file = path.join(os.homedir(), '.claude', 'settings.json');
+  let settings: any = {};
+  if (fs.existsSync(file)) {
+    const text = fs.readFileSync(file, 'utf8');
+    try { settings = text.trim() ? JSON.parse(text) : {}; }
+    catch { throw new Error(`Could not read ${file}, so the LinkedIn/Indeed tools were not blocked. Fix the file and connect again.`); }
+  }
+  settings.permissions ??= {};
+  const deny: string[] = Array.isArray(settings.permissions.deny) ? settings.permissions.deny : [];
+  const missing = rules.filter(r => !deny.includes(r));
+  if (!missing.length) return;
+  settings.permissions.deny = [...deny, ...missing];
+  const tmp = `${file}.omni-tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(settings, null, 2) + '\n', 'utf8');
+  fs.renameSync(tmp, file);
+}
+
+/** Claude.ai directory connectors: added on claude.ai, detected here from `claude mcp list`. */
+const CLAUDE_AI_CONNECTORS: Record<string, RegExp> = {
+  indeed: /claude\.ai Indeed:/i,
+  ziprecruiter: /claude\.ai ZipRecruiter:/i,
 };
 
 /**
@@ -112,6 +182,7 @@ const URL_RE = /^https?:\/\/[A-Za-z0-9.\-]+(:\d+)?(\/[A-Za-z0-9._\-\/]*)?$/;
 const KNOWN_IDS = [
   'context7', 'filesystem', 'memory', 'sequential-thinking', 'mobile',
   'youtube-transcript', 'playwright', 'chrome-devtools', 'scrapling', 'exa', 'mcp-email-server',
+  'openings-mcp', 'dice',
   'github', 'firecrawl', 'tavily', 'apify', 'searxng',
   'postgres', 'notion', 'n8n', 'discord',
 ];
@@ -132,6 +203,11 @@ export async function GET() {
       for (const id of KNOWN_IDS) {
         if (new RegExp(`(^|\\s)${id}:`).test(line)) {
           status[id] = /✔|Connected/i.test(line) && !/✘|Failed/i.test(line) ? 'connected' : 'failed';
+        }
+      }
+      for (const [id, re] of Object.entries(CLAUDE_AI_CONNECTORS)) {
+        if (re.test(line)) {
+          status[id] = /✔|√|Connected/i.test(line) && !/✘|Failed|Needs auth/i.test(line) ? 'connected' : 'failed';
         }
       }
     }
@@ -210,6 +286,18 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: msg }, { status: 500 });
       }
       return NextResponse.json({ success: true, message: `Connected ${id}. Restart Claude Code to load its tools.` });
+    }
+
+    // ---- openings-mcp (pinned, checksum-verified binary) ----
+    if (id === 'openings-mcp') {
+      const exe = await installOpenings();
+      addDenyRules(OPENINGS.deny);
+      try { await execAsync('claude mcp remove openings-mcp -s user', { timeout: 30_000 }); } catch { /* ok if absent */ }
+      await execAsync(`claude mcp add --scope user openings-mcp -- ${quoteArg(exe)} --log-level warn`, { timeout: 60_000 });
+      return NextResponse.json({
+        success: true,
+        message: 'Connected openings-mcp (LinkedIn and Indeed tools blocked). Restart Claude Code to load it.',
+      });
     }
 
     // ---- hosted HTTP servers ----
