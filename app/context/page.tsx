@@ -8,6 +8,8 @@ import { useWorkspace } from '@/components/layout/WorkspaceProvider';
 import { useAudioNotification } from '@/components/ui/useAudioNotification';
 
 const AUTO_SAVE_DELAY_MS = 2000;
+// Must match MAX_MAP_BYTES in app/api/context/route.ts
+const MAX_MAP_BYTES = 40_000;
 
 type SaveState = 'idle' | 'dirty' | 'saving' | 'saved';
 
@@ -39,81 +41,79 @@ async function buildTemplate(projectPath: string, packageManager: string): Promi
   }
 
   const isSoftwareProject = analysis.language !== 'Unknown' || analysis.framework !== 'Unknown';
+  const projectName = projectPath.split(/[\\/]/).filter(Boolean).pop() || '[project name]';
 
-  const techStackSection = isSoftwareProject ? `
-## Tech Stack
-- **Language**: ${analysis.language}
-- **Framework**: ${analysis.framework}
-- **Styling**: ${analysis.styling}
-- **Database/ORM**: ${analysis.database}
-- **Package Manager**: ${analysis.packageManager}
-` : '';
+  const stackLine = isSoftwareProject
+    ? `Stack: ${analysis.language} · ${analysis.framework} · ${analysis.styling} · ${analysis.database} · ${analysis.packageManager}\n`
+    : '';
 
-  return `# Shared AI Context
+  // Short-map format (Jake Van Clief): this file loads every session, so it holds
+  // only identity, where things are, routing and rules. History, goals and long
+  // lessons live in _agent-tasks/ (created by /api/context on first save).
+  return `# ${projectName} — map and rules
 
-## What This Project Is
-- **Name**: [project name]
-- **Domain**: [Software / Writing / Research / Business / Creative / Other]
-- **Goal**: [One sentence — what are we trying to achieve?]
-- **Audience**: [Who is this for? End users, readers, stakeholders, yourself?]
-- **Constraints**: [Hard limits — deadlines, tools, style guides, budget, word count, etc.]
-${techStackSection}
-## Project Structure
+[One or two sentences: what this project is, who it is for, and any hard limits.]
+${stackLine}This file loads every session, so it holds only rules and where to look. History lives in \`_agent-tasks/\` (see Logging).
+
+## Where things are
+Top-level folders (cut this to one line each: what lives there):
 \`\`\`
 ${folderStructure}
 \`\`\`
+- \`_agent-tasks/\` — \`SESSION_LOG.md\` (history, one line per task), \`ACTIVE_GOALS.md\` (open work),
+  \`LESSONS_FULL.md\` (long lessons), one \`AGENT_TASKS_*.md\` per agent-team run.
+- Never read unless asked: [archives, old versions, generated or vendored folders].
 
-## Your Role
-You are a world-class expert who adapts completely to the domain of this project.
-- **Software**: Write production-grade code. No placeholders. Optimize for correctness and clarity.
-- **Writing**: Produce sharp, direct prose that matches the defined audience and tone. No filler.
-- **Research**: Synthesize accurately. Surface conflicting evidence. Cite sources.
-- **Business / Strategy**: Think in tradeoffs, stakeholders, and measurable outcomes.
-- **Any domain**: Skip preamble. Lead with the actual work, not a description of it.
+## Routing: job → read first → skill
+| Job | Read first | Use |
+|---|---|---|
+| "What did we do before / where is X" | grep \`_agent-tasks/SESSION_LOG.md\` (never read it whole) | — |
+| Open goals | \`_agent-tasks/ACTIVE_GOALS.md\` | \`/ralph\` works through them |
+| Big multi-part work | — | \`/build-with-agent-team\` (see Agents) |
+| Check a claim | — | \`/fact-check\` |
+| End of a session | — | \`/checkpoint\` |
+| [a job you do often] | [the file or folder to read first] | [skill] |
 
-## Epistemic Standards (always apply, every domain)
-**Accuracy over speed.** If something cannot be verified, say "I don't know" or "I can't verify that." Never fabricate — not even plausible-sounding details.
-
-**RAG-first.** Before any recommendation or time-sensitive claim: retrieve from authoritative, preferably primary sources and cite them. Prefer peer-reviewed research, official documentation, and well-established references over pattern-matching or heuristics. If retrieval isn't possible, say so explicitly and give the most conservative, least-speculative answer available.
-
-**Flag uncertainty explicitly.** State confidence level or describe what's unknown. Separate facts from interpretations — label each clearly, never blend them.
-
-**Structured reasoning.** For any non-trivial claim: show reasoning step by step, define key terms, surface assumptions, check edge cases. If sources disagree, present both sides with citations and explain what evidence would resolve the disagreement.
-
-**Recommendations must earn their place.** Include the criteria used, the tradeoffs considered, and why this option wins vs. alternatives — grounded in retrieved evidence. Generic advice is not acceptable. Outputs must be actionable and bounded.
-
-**Efficiency.** Don't waste words. Lead with the answer. Optimize for correctness, not persuasion.
-
-## Working Rules
+## Working rules
 <!-- Edit these before your first session. Add, remove, or replace as needed. -->
-1. Never delete, overwrite, or publish anything without explicit permission.
-2. Never produce placeholder content — finish what you start.
-3. When uncertain, ask one specific clarifying question rather than guessing.
-4. [Add a domain rule, e.g. "Use British English" / "Follow APA citation style" / "All commands use ${analysis.packageManager}"]
+1. Never delete, overwrite, or publish anything without explicit permission. Back up before overwriting.
+2. Never produce placeholder content. Finish what you start.
+3. When unsure, ask one specific question rather than guess.
+4. [Add a project rule, e.g. "Use British English" / "All commands use ${analysis.packageManager}"]
 
-## Lessons Log
-<!-- After any correction, append one line: YYYY-MM-DD | what went wrong | rule to follow next time -->
-<!-- Read this section at the start of every session and apply every rule before touching any code. -->
+## Epistemic standards
+- Accuracy over speed. If it can't be verified, say so. Never fabricate.
+- Retrieve from primary sources before time-sensitive claims, and cite them.
+- Label facts vs interpretation; state confidence and what is unknown.
+- When sources disagree, show both and say what would settle it.
+- Recommendations state criteria, tradeoffs, and why this option wins. Lead with the answer.
 
-## Self-Update Protocol (MANDATORY — no exceptions)
-At the START of every session: read **Lessons Log** and apply every rule before touching any code.
+## Agents
+- One agent first. Spawn a team only when parts are independent and parallel, or verbose enough to bury the
+  lead's context, or when an independent review lens is worth it.
+- Each agent writes one output file (its contract). An idle agent has not necessarily written it: check the file.
+- The agent that writes a final must not be its only checker.
 
-After completing ANY task — without being asked — edit this file before ending your response:
-1. Mark the completed goal with [x]
-2. Append one line to **Session Log**: \`YYYY-MM-DD · [task completed] · [key decision or output]\`
-3. Add any new goals, blockers, or follow-ups to **Active Goals**
-4. Update **Project Structure** or **Tech Stack** if anything significant changed
-5. After any correction from you, add an entry to **Lessons Log**: \`YYYY-MM-DD | what went wrong | rule to follow next time\`
+## Lessons (one line each; full text in \`_agent-tasks/LESSONS_FULL.md\`)
+<!-- After a correction, add one line here only if it is a standing rule: what to do next time. -->
 
-This keeps every AI tool that opens this folder fully in sync with the current state of the work.
-No reminder needed — this is automatic, like saving a file.
+## Logging
+After finishing a task, without being asked:
+1. Append ONE line (≤300 chars) to the END of \`_agent-tasks/SESSION_LOG.md\`:
+   \`YYYY-MM-DD · [how: manual | /skill] · [what was done] · [main file or decision]\`. Details go in notes or docs.
+2. Update \`_agent-tasks/ACTIVE_GOALS.md\` if a goal opened or closed.
+3. After a correction: one line in "Lessons" above if it is a standing rule; the full story goes in
+   \`_agent-tasks/LESSONS_FULL.md\`. Rules for one sub-folder go in that folder's own \`AGENTS.md\`.
+4. Edit this file only for a rule or map change, and keep it under ~150 lines.
+\`.claude.md\` and \`.gemini.md\` are copies of this file for other tools. Edit \`AGENTS.md\` (or save it on the
+OmniAgent Studio context page), then copy it over them. Never copy them back onto \`AGENTS.md\`.
 
-## Session Log
-<!-- Format: YYYY-MM-DD · Task completed · Key decision or output -->
+## MCP tools (prefer these; fall back instead of stopping)
+- Connected MCP servers expose tools named \`mcp__<server>__*\`. Use them when the task matches, and say which you used.
+- On a rate limit, quota or auth error, fall back (another search or scrape server, then a plain fetch) and keep going.
 
-## Active Goals
-- [ ] Read this context file and confirm understanding of the project and your role.
-- [ ] [Add your first real goal here]
+<!-- MCP-LIST:START - sync-mcp-context.ps1 fills this table -->
+<!-- MCP-LIST:END -->
 `;
 }
 
@@ -125,6 +125,7 @@ export default function ContextPage() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedContent = useRef<string>('');
 
@@ -168,9 +169,9 @@ export default function ContextPage() {
           setContextData(template);
           lastSavedContent.current = '';
           setSaveState('dirty');
-          // Immediately sync so all three files are written
-          await syncContent(template, pathToLoad);
-          setSyncStatus('Context ready');
+          // Immediately sync so AGENTS.md (+ its copies) and the _agent-tasks/ starter files are written
+          const ok = await syncContent(template, pathToLoad, true);
+          setSyncStatus(ok ? 'Context ready' : 'Context not saved');
         }
       } else {
         setSyncStatus(`Error: ${data.error}`);
@@ -189,28 +190,35 @@ export default function ContextPage() {
     }
   }, [projectPath, handleLoadContext]);
 
-  const syncContent = async (content: string, path: string) => {
-    if (content === lastSavedContent.current) return;
+  // initProject: also create _agent-tasks/SESSION_LOG.md, ACTIVE_GOALS.md and LESSONS_FULL.md if missing
+  const syncContent = async (content: string, path: string, initProject = false): Promise<boolean> => {
+    if (content === lastSavedContent.current) return true;
     setSaveState('saving');
     try {
       const res = await fetch('/api/context', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'sync', projectPath: path, content }),
+        body: JSON.stringify({ action: 'sync', projectPath: path, content, initProject }),
       });
       if (res.ok) {
         lastSavedContent.current = content;
         setSaveState('saved');
-      } else {
-        setSaveState('dirty');
+        setSaveError(null);
+        return true;
       }
-    } catch {
+      const data = await res.json().catch(() => ({}));
+      setSaveError(data.error || `Save failed (HTTP ${res.status})`);
       setSaveState('dirty');
+      return false;
+    } catch {
+      setSaveError('Save failed: the Studio server did not answer.');
+      setSaveState('dirty');
+      return false;
     }
   };
 
-  const syncToFiles = useCallback(async (content: string) => {
-    await syncContent(content, projectPath);
+  const syncToFiles = useCallback(async (content: string, initProject = false) => {
+    return syncContent(content, projectPath, initProject);
   }, [projectPath]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleContextChange = (value: string) => {
@@ -235,7 +243,7 @@ export default function ContextPage() {
     setContextData(template);
     setSaveState('dirty');
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    debounceTimer.current = setTimeout(() => syncToFiles(template), AUTO_SAVE_DELAY_MS);
+    debounceTimer.current = setTimeout(() => syncToFiles(template, true), AUTO_SAVE_DELAY_MS);
   };
 
   const handleSyncContext = async () => {
@@ -243,13 +251,15 @@ export default function ContextPage() {
     setIsSyncing(true);
     setSyncStatus(null);
     try {
-      await syncToFiles(contextData);
-      setSyncStatus('Context saved');
-      chime();
+      const ok = await syncToFiles(contextData);
+      setSyncStatus(ok ? 'Context saved' : 'Context not saved');
+      if (ok) chime();
     } finally {
       setIsSyncing(false);
     }
   };
+
+  const mapBytes = new TextEncoder().encode(contextData).length;
 
   // Empty state
   if (!projectPath) {
@@ -276,7 +286,7 @@ export default function ContextPage() {
         {!bannerDismissed && (
           <div className="border border-blue-500/20 bg-blue-500/5 rounded-lg p-4 flex items-start gap-3">
             <div id="context-banner-text" className="flex-1 text-[13px] text-zinc-400 leading-relaxed">
-              This is your AI Instructions file. Write what your project is about, what rules the AI should follow, and what goals you want to achieve. Every AI tool you launch will read this file automatically — so anything you write here applies to all of them.
+              This is your project map (AGENTS.md). Keep it short: what the project is, where things are, which file to read for which job, and the rules. Every AI tool you launch reads it at the start of each session. History goes in _agent-tasks/SESSION_LOG.md and open goals in _agent-tasks/ACTIVE_GOALS.md, not here.
             </div>
             <button
               onClick={dismissBanner}
@@ -290,6 +300,12 @@ export default function ContextPage() {
           </div>
         )}
 
+        {saveError && (
+          <div role="alert" className="border border-red-500/30 bg-red-500/5 rounded-lg p-4 text-[13px] text-red-300 leading-relaxed">
+            {saveError}
+          </div>
+        )}
+
         <div className="bg-[var(--c-surface)] border border-[var(--c-border)] rounded-xl flex flex-col overflow-hidden h-[70dvh] min-h-[300px]">
           {/* Toolbar */}
           <div className="h-12 border-b border-[var(--c-border)] bg-[var(--c-inset)] flex items-center justify-between px-4 shrink-0">
@@ -299,9 +315,11 @@ export default function ContextPage() {
                 Shared AI Context
               </div>
               <div className="flex items-center gap-2 text-[11px] font-mono text-zinc-600 hidden sm:flex">
-                <span>.gemini.md</span>
-                <span>.claude.md</span>
-                <span>agents.md</span>
+                <span className="text-zinc-400">AGENTS.md</span>
+                <span>→ .claude.md · .gemini.md</span>
+                <span className={mapBytes > MAX_MAP_BYTES ? 'text-red-400' : mapBytes > MAX_MAP_BYTES * 0.75 ? 'text-amber-400' : ''}>
+                  {(mapBytes / 1000).toFixed(1)} / {MAX_MAP_BYTES / 1000} KB
+                </span>
               </div>
             </div>
             <div className="flex items-center gap-2">

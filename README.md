@@ -228,4 +228,4 @@ The app will start at http://localhost:3000.
 - `app/` -- Next.js pages and API routes
 - `components/` -- Reusable UI components
 - `scripts/` -- Setup scripts
-- `.claude.md` -- Shared AI instructions file (synced to `.gemini.md` and `agents.md`)
+- `AGENTS.md` -- Short project map and rules written by the Shared Context page (copied to `.claude.md` and `.gemini.md`); history and goals live in `_agent-tasks/SESSION_LOG.md` and `_agent-tasks/ACTIVE_GOALS.md`

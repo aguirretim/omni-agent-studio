@@ -11,7 +11,9 @@ If no argument was provided, ask the user for a claim before proceeding.
 ## Step 0: Load Context
 
 ```bash
-cat .claude.md 2>/dev/null || cat .gemini.md 2>/dev/null || cat agents.md 2>/dev/null || echo "NO_CONTEXT_FILE"
+cat AGENTS.md 2>/dev/null || cat .claude.md 2>/dev/null || echo "NO_CONTEXT_FILE"   # short map; skip if already in your context
+cat _agent-tasks/ACTIVE_GOALS.md 2>/dev/null
+tail -15 _agent-tasks/SESSION_LOG.md 2>/dev/null   # never read the whole log; grep it for this topic
 ```
 
 Note the project path and working rules. The report will be saved to the project root.
@@ -249,12 +251,16 @@ Tell the user:
 
 ## Context Update (MANDATORY)
 
-After the report is saved, update all three context files:
+After the report is saved, follow the **Logging** section of `AGENTS.md`:
 
-1. Edit `.claude.md` — append to **Session Log** and add any follow-up research goals:
-   - Session log format: `YYYY-MM-DD · /fact-check · [models used] · [claim slug] · [final verdict]`
-2. Sync to the other two files:
+1. Append ONE line (≤300 chars) to the END of `_agent-tasks/SESSION_LOG.md` (create the file if missing):
+   - Format: `YYYY-MM-DD · /fact-check · [models used] · [claim slug] · [final verdict]`
+   - Details belong in the project's notes or docs, not in the log line.
+2. Update `_agent-tasks/ACTIVE_GOALS.md` if goals opened or closed.
+3. Only if a RULE changed (a new standing rule or a lesson worth keeping): edit `AGENTS.md` (keep it under ~150 lines), then copy it to the other tools' files:
 
 ```bash
-cp .claude.md .gemini.md && cp .claude.md agents.md && echo "Context synced → .gemini.md + agents.md"
+cp AGENTS.md .claude.md && cp AGENTS.md .gemini.md && echo "Synced AGENTS.md → .claude.md + .gemini.md"
 ```
+
+Never copy `.claude.md` onto `AGENTS.md`, and never append history to `AGENTS.md`: it is the source and stays a short map.
