@@ -44,7 +44,15 @@ const HTTP_CONNECTORS: Record<string, string> = {
   exa: 'https://mcp.exa.ai/mcp',
   // Dice's official job-search server (DHI Group). Search only, no sign-in.
   dice: 'https://mcp.dice.com/mcp',
+  // Money: sign-in happens in the browser through /mcp in Claude Code, never in this app.
+  // Robinhood's official Trading MCP: reads every Robinhood account; trades only in a separate Agentic account.
+  'robinhood-trading': 'https://agent.robinhood.com/mcp/trading',
+  // Truthifi: read-only aggregator (Plaid/Yodlee) for banks, Acorns and brokerages. Needs a Truthifi account.
+  truthifi: 'https://api.truthifi.com/mcp',
 };
+
+/** HTTP servers that need an OAuth sign-in after they are added. */
+const NEEDS_SIGN_IN = new Set(['robinhood-trading', 'truthifi']);
 
 /**
  * openings-mcp: a pinned release binary, downloaded once and checked against the
@@ -182,7 +190,7 @@ const URL_RE = /^https?:\/\/[A-Za-z0-9.\-]+(:\d+)?(\/[A-Za-z0-9._\-\/]*)?$/;
 const KNOWN_IDS = [
   'context7', 'filesystem', 'memory', 'sequential-thinking', 'mobile',
   'youtube-transcript', 'playwright', 'chrome-devtools', 'scrapling', 'exa', 'mcp-email-server',
-  'openings-mcp', 'dice',
+  'openings-mcp', 'dice', 'robinhood-trading', 'truthifi',
   'github', 'firecrawl', 'tavily', 'apify', 'searxng',
   'postgres', 'notion', 'n8n', 'discord',
 ];
@@ -198,11 +206,12 @@ const quoteArg = (a: string) => `"${a}"`;
 export async function GET() {
   try {
     const { stdout } = await execAsync('claude mcp list', { timeout: 90_000 });
-    const status: Record<string, 'connected' | 'failed'> = {};
+    const status: Record<string, 'connected' | 'failed' | 'needsauth'> = {};
     for (const line of stdout.split('\n')) {
       for (const id of KNOWN_IDS) {
         if (new RegExp(`(^|\\s)${id}:`).test(line)) {
-          status[id] = /✔|Connected/i.test(line) && !/✘|Failed/i.test(line) ? 'connected' : 'failed';
+          status[id] = /Needs auth/i.test(line) ? 'needsauth'
+            : /✔|Connected/i.test(line) && !/✘|Failed/i.test(line) ? 'connected' : 'failed';
         }
       }
       for (const [id, re] of Object.entries(CLAUDE_AI_CONNECTORS)) {
@@ -304,7 +313,8 @@ export async function POST(req: NextRequest) {
     const httpUrl = Object.prototype.hasOwnProperty.call(HTTP_CONNECTORS, id) ? HTTP_CONNECTORS[id] : undefined;
     if (httpUrl) {
       await execAsync(`claude mcp add --scope user --transport http ${id} ${httpUrl}`, { timeout: 60_000 });
-      return NextResponse.json({ success: true, message: `Connected ${id}. Restart your agent to load its tools.` });
+      const signIn = NEEDS_SIGN_IN.has(id) ? ' Then type /mcp in Claude Code, pick it, and sign in in the browser.' : '';
+      return NextResponse.json({ success: true, message: `Added ${id}. Restart your agent to load its tools.${signIn}` });
     }
 
     // ---- one-click servers ----

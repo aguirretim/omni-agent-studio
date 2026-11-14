@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Plug, Check, Loader2, KeyRound, ExternalLink, ShieldAlert, RefreshCw, X, Sparkles, Briefcase } from 'lucide-react';
+import { Plug, Check, Loader2, KeyRound, ExternalLink, ShieldAlert, RefreshCw, X, Sparkles, Briefcase, Wallet } from 'lucide-react';
 import { useWorkspace } from '@/components/layout/WorkspaceProvider';
 
 type Tier = 'must' | 'strong' | 'situational';
-type Status = 'connected' | 'failed' | undefined;
+type Status = 'connected' | 'failed' | 'needsauth' | undefined;
 
 interface Field {
   name: string;         // key sent to the API in `secrets`
@@ -134,6 +134,35 @@ const JOB_SEARCH: JobTool[] = [
     detail: 'ZipRecruiter’s official connector: one search tool, no account needed. Add it on claude.ai (a direct connection from this PC was refused with “too many requests”). Listings are often reposts, so follow through to the employer.',
     docsUrl: 'https://ziprecruiter-investors.com/news/news-details/2026/ZipRecruiter-Expands-AI-Powered-Job-Search-with-Claude-Integration/default.aspx',
     claudeAiUrl: 'https://claude.com/marketplace/connectors/ziprecruiter',
+  },
+];
+
+// ── Money: read your bank, brokerage and investing accounts ────────────────
+// Checked 14 Nov 2026. Every bank sign-in happens in Plaid's or the provider's own
+// browser window; never type a bank password into an agent or this app.
+interface MoneyTool extends McpServer {
+  via: 'oneclick' | 'claudeapp';
+  appUrl?: string;  // for 'claudeapp': where to open it (not an MCP server, nothing to detect)
+}
+const MONEY: MoneyTool[] = [
+  {
+    id: 'claude-personal-finance', via: 'claudeapp', name: 'Claude Personal Finance', publisher: 'Anthropic · official · beta', tier: 'must',
+    category: 'Banks, cards, Acorns, Robinhood balances · Claude app only',
+    detail: 'Built into Claude (web, desktop, phone) on Pro, Max and Ultra, US only. Open “Personal Finance” in the side menu, then Link accounts with Plaid. Up to 16 banks; reads balances, credit limits and 24 months of transactions. Read-only: it cannot move money. It does NOT work in Claude Code, scheduled tasks or Cowork, and investment holdings are not read (balances only).',
+    docsUrl: 'https://support.claude.com/en/articles/18185620-use-personal-finance-in-claude',
+    appUrl: 'https://claude.ai',
+  },
+  {
+    id: 'robinhood-trading', via: 'oneclick', name: 'Robinhood', publisher: 'Robinhood · official · beta', tier: 'strong',
+    category: 'Robinhood accounts · Robinhood sign-in',
+    detail: 'Robinhood’s own Trading MCP. It can read ALL your Robinhood accounts (including account numbers, positions, balances and order history). It can place trades only in a separate “Agentic” account, which sign-in prompts you to open; it trades only with money you deposit there. After Connect, type /mcp in Claude Code, pick robinhood-trading and sign in (first setup must be on a desktop). Agent losses are yours; keep trading off unless you mean it.',
+    docsUrl: 'https://robinhood.com/us/en/support/articles/onboarding-an-external-agent/',
+  },
+  {
+    id: 'truthifi', via: 'oneclick', name: 'Truthifi', publisher: 'Truthifi · hosted · free tier', tier: 'strong',
+    category: 'Banks + Acorns + brokerages in Claude Code · read-only',
+    detail: 'Acorns has no MCP server of its own, so this is the route for Acorns and your bank inside Claude Code. Make a free account at truthifi.com and link your bank and Acorns there (through Plaid, Yodlee or ByAllAccounts). Then Connect here, type /mcp in Claude Code, pick truthifi and sign in. Read-only: it cannot move money or trade. The free plan has fewer tools.',
+    docsUrl: 'https://truthifi.com/providermcps/acorns-mcp',
   },
 ];
 
@@ -369,7 +398,7 @@ export default function McpPage() {
       if (!res.ok) setSyncStatus(`Failed: ${data.error ?? res.statusText}`);
       else {
         setStatus(prev => ({ ...prev, [server.id]: 'connected' }));
-        setSyncStatus(`${server.name} connected`);
+        setSyncStatus(data.message ?? `${server.name} connected`);
       }
     } catch {
       setSyncStatus(`Failed connecting ${server.name}`);
@@ -573,6 +602,65 @@ export default function McpPage() {
                         className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-200 px-3 py-1.5 rounded-lg bg-zinc-700 hover:bg-zinc-600 border border-zinc-600 hover:border-zinc-500 transition-colors disabled:opacity-60 disabled:cursor-wait"
                       >
                         {isBusy ? <><Loader2 size={13} className="animate-spin" /> Connecting</> : <><Plug size={13} /> Connect</>}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Money — read-only account access */}
+        <section className="flex flex-col gap-3">
+          <div className="text-[11px] font-semibold tracking-widest text-zinc-500 uppercase flex items-center gap-2">
+            <Wallet size={12} /> Money · bank, Robinhood, Acorns
+          </div>
+          <p className="text-[12px] text-zinc-500 leading-relaxed -mt-1">
+            Every bank sign-in happens in Plaid’s or the provider’s own window. Never paste a bank password or
+            account number into an agent. Unlink any time from the provider (or my.plaid.com). Checked 14 Nov 2026.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {MONEY.map(server => {
+              const st = status[server.id];
+              const isConnected = st === 'connected';
+              const isBusy = busy === server.id;
+              return (
+                <div key={server.id} className="flex flex-col gap-3 p-4 rounded-xl bg-[var(--c-inset)] border border-[var(--c-border)] shadow-sm">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex flex-col">
+                      <div className="text-sm font-semibold text-zinc-200">{server.name}</div>
+                      <div className="text-[11px] text-zinc-500 mt-0.5">{server.category}</div>
+                    </div>
+                    <TierBadge tier={server.tier} />
+                  </div>
+                  <p className="text-[11px] text-zinc-500 leading-relaxed flex-1">{server.detail}</p>
+                  {st === 'needsauth' && (
+                    <p className="text-[10px] text-amber-400/90 leading-relaxed bg-zinc-800/40 border border-[var(--c-border)] rounded-md p-2">
+                      Added, but not signed in yet. In Claude Code type /mcp, pick {server.id}, and finish the sign-in in your browser. Then press Refresh.
+                    </p>
+                  )}
+                  <div className="flex items-center justify-between gap-2">
+                    <a href={server.docsUrl} target="_blank" rel="noopener noreferrer"
+                       className="text-[10px] text-zinc-500 hover:text-zinc-300 flex items-center gap-1 transition-colors">
+                      {server.publisher} <ExternalLink size={9} />
+                    </a>
+                    {isConnected ? <ConnectedPill /> : server.via === 'claudeapp' ? (
+                      <a
+                        href={server.appUrl} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-200 px-3 py-1.5 rounded-lg bg-zinc-700 hover:bg-zinc-600 border border-zinc-600 hover:border-zinc-500 transition-colors"
+                      >
+                        <ExternalLink size={13} /> Open Claude
+                      </a>
+                    ) : st === 'needsauth' ? (
+                      <span className="text-[11px] font-semibold text-amber-400 px-3 py-1.5">Needs sign-in</span>
+                    ) : (
+                      <button
+                        onClick={() => connect(server)}
+                        disabled={isBusy}
+                        className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-200 px-3 py-1.5 rounded-lg bg-zinc-700 hover:bg-zinc-600 border border-zinc-600 hover:border-zinc-500 transition-colors disabled:opacity-60 disabled:cursor-wait"
+                      >
+                        {isBusy ? <><Loader2 size={13} className="animate-spin" /> Adding</> : <><Plug size={13} /> Connect</>}
                       </button>
                     )}
                   </div>
