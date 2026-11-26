@@ -3,6 +3,8 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 
+const ACTIVE_GOALS_FILE = path.join('_agent-tasks', 'ACTIVE_GOALS.md');
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -41,27 +43,29 @@ export async function POST(req: NextRequest) {
       }
 
       case 'parse-goals': {
-        // Try to find the shared context file
-        const contextCandidates = ['.claude.md', '.gemini.md', 'agents.md'];
-        let contextContent: string | null = null;
+        // Short-map format: the whole goal list lives in _agent-tasks/ACTIVE_GOALS.md.
+        // Older projects keep a "## Active Goals" section inside the shared context file.
+        let section: string | null = null;
         let contextFile: string | null = null;
-        for (const candidate of contextCandidates) {
-          const p = path.join(resolvedPath, candidate);
-          if (fs.existsSync(p)) {
-            contextContent = fs.readFileSync(p, 'utf-8');
-            contextFile = candidate;
-            break;
+        const goalsPath = path.join(resolvedPath, ACTIVE_GOALS_FILE);
+        if (fs.existsSync(goalsPath)) {
+          section = fs.readFileSync(goalsPath, 'utf-8').replace(/\r\n/g, '\n');
+          contextFile = '_agent-tasks/ACTIVE_GOALS.md';
+        } else {
+          for (const candidate of ['AGENTS.md', '.claude.md', '.gemini.md']) {
+            const p = path.join(resolvedPath, candidate);
+            if (fs.existsSync(p)) {
+              const contextContent = fs.readFileSync(p, 'utf-8').replace(/\r\n/g, '\n');
+              contextFile = candidate;
+              const goalsMatch = contextContent.match(/## Active Goals\n([\s\S]*?)(?:\n##\s|\n---\s*$|$)/);
+              if (goalsMatch) section = goalsMatch[1];
+              break;
+            }
           }
         }
-        if (!contextContent) {
-          return NextResponse.json({ goals: [], contextFile: null });
-        }
-        // Parse ## Active Goals section
-        const goalsMatch = contextContent.match(/## Active Goals\n([\s\S]*?)(?:\n##\s|\n---\s*$|$)/);
-        if (!goalsMatch) {
+        if (section === null) {
           return NextResponse.json({ goals: [], contextFile });
         }
-        const section = goalsMatch[1];
         const lines = section.split('\n');
         const goals: Array<{ text: string; done: boolean }> = [];
         for (const line of lines) {

@@ -115,10 +115,10 @@ export default function HowToUse({ isOpen, onClose }: HowToUseProps) {
                     2. Write Your AI Instructions
                   </div>
                   <p className="text-xs text-zinc-400 leading-relaxed">
-                    The big text editor is your <strong>Shared AI Instructions</strong>. Write your project description, goals, and any rules you want the AI to follow. The app saves these instructions to your project folder automatically so every AI tool you launch reads the same thing.
+                    The big text editor is your <strong>project map</strong>. Keep it short: what the project is, where things are, which file to read for which job, and the rules you want the AI to follow. The app saves these instructions to your project folder automatically so every AI tool you launch reads the same thing.
                   </p>
                   <p className="text-[11px] text-zinc-600 leading-relaxed">
-                    Saved as <code className="text-emerald-300">.claude.md</code>, <code className="text-zinc-400">.gemini.md</code>, and <code className="text-zinc-400">agents.md</code> in your workspace.
+                    Saved as <code className="text-emerald-300">AGENTS.md</code> and copied to <code className="text-zinc-400">.claude.md</code> and <code className="text-zinc-400">.gemini.md</code>. History and goals go in <code className="text-zinc-400">_agent-tasks/SESSION_LOG.md</code> and <code className="text-zinc-400">ACTIVE_GOALS.md</code>.
                   </p>
                 </div>
 

@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Bot, Home, FileText, Terminal, FolderGit2, HelpCircle, RefreshCw, FolderOpen, Volume2, VolumeX, Sun, Moon } from 'lucide-react';
+import { Bot, Home, FileText, Terminal, FolderGit2, HelpCircle, RefreshCw, FolderOpen, Volume2, VolumeX, Sun, Moon, Plug } from 'lucide-react';
 import { isAudioEnabled, setAudioEnabled, getAudioVolume, setAudioVolume } from '@/components/ui/useAudioNotification';
 
 /** Returns { name, parent } split from a file path. */
@@ -22,6 +22,7 @@ const navItems = [
   { label: 'Home', description: 'Start here', icon: Home, route: '/' },
   { label: 'Shared Context', description: 'Tell AI about your project', icon: FileText, route: '/context' },
   { label: 'AI Tools', description: 'Launch AI assistants', icon: Terminal, route: '/tools' },
+  { label: 'MCP Servers', description: 'Plug in power-ups', icon: Plug, route: '/mcp' },
   { label: 'Agent Teams', description: 'Coordinate multiple AIs', icon: Bot, route: '/agents' },
   { label: 'Ralph', description: 'Run tasks automatically', icon: RefreshCw, route: '/ralph' },
   { label: 'Sessions', description: 'Save your progress', icon: FolderGit2, route: '/sessions' },

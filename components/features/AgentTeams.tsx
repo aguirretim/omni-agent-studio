@@ -1116,7 +1116,7 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {[
                         { skill: '/fact-check', color: 'text-sky-400', desc: 'Has every available model research a claim independently, then cross-verifies findings and flags contradictions. Produces a structured report.' },
-                        { skill: '/checkpoint', color: 'text-violet-400', desc: 'Audits git changes and syncs the Session Log across .claude.md, .gemini.md, and agents.md so every tool starts with current context.' },
+                        { skill: '/checkpoint', color: 'text-violet-400', desc: 'Audits git changes, appends one line to _agent-tasks/SESSION_LOG.md and updates ACTIVE_GOALS.md, so every tool starts with current context. AGENTS.md only changes when a rule does.' },
                         { skill: '/commit', color: 'text-emerald-400', desc: 'Creates a conventional commit with a well-formatted message. Checks staged changes and writes the commit for you.' },
                         { skill: '/review-pr', color: 'text-amber-400', desc: 'Reviews your code changes like a senior engineer — checks for bugs, security issues, performance, and style before committing.' },
                         { skill: '/debug', color: 'text-red-400', desc: 'Systematically diagnoses a bug: reproduces, isolates root cause, proposes and verifies a fix.' },
@@ -1146,7 +1146,7 @@ export default function AgentTeams({ projectPath, setSyncStatus }: AgentTeamsPro
                         },
                         {
                           title: 'Shared context file',
-                          body: 'All agents read .claude.md at startup to understand the project, tech stack, and what was done in prior sessions. After finishing, the lead agent updates the Session Log so the next session picks up where this one left off.',
+                          body: 'All agents start from AGENTS.md, a short map of the project: where things are, which file to read for which job, and the rules. After finishing, the lead agent appends one line to _agent-tasks/SESSION_LOG.md so the next session picks up where this one left off.',
                         },
                       ].map(({ title, body }) => (
                         <div key={title} className="flex gap-3">

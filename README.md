@@ -7,6 +7,9 @@ website, the AI runs directly on your computer inside your project folder -- whi
 actually see and edit your files. This app lets you run multiple AI assistants at the same time,
 all sharing the same instructions so they stay in sync with each other.
 
+![OmniAgent Studio home dashboard](docs/screenshot.png)
+*The home dashboard: sidebar navigation, the workspace connector, and the getting-started guide (shown in its unconnected empty state).*
+
 ---
 
 ## Before you start -- what you need
@@ -225,4 +228,4 @@ The app will start at http://localhost:3000.
 - `app/` -- Next.js pages and API routes
 - `components/` -- Reusable UI components
 - `scripts/` -- Setup scripts
-- `.claude.md` -- Shared AI instructions file (synced to `.gemini.md` and `agents.md`)
+- `AGENTS.md` -- Short project map and rules written by the Shared Context page (copied to `.claude.md` and `.gemini.md`); history and goals live in `_agent-tasks/SESSION_LOG.md` and `_agent-tasks/ACTIVE_GOALS.md`

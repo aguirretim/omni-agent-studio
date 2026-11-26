@@ -6,21 +6,23 @@ $ARGUMENTS
 
 ## Step 0: Load Context (always run first, before anything else)
 
-Read the shared context file to get full project state:
+Read the project's short map (`AGENTS.md`: where things are, routing, rules), the open goals and the latest log lines. `AGENTS.md` is usually loaded automatically; skip the first `cat` if it is already in your context:
 
 ```bash
-cat .claude.md 2>/dev/null || cat .gemini.md 2>/dev/null || cat agents.md 2>/dev/null || echo "NO_CONTEXT_FILE"
+cat AGENTS.md 2>/dev/null || cat .claude.md 2>/dev/null || echo "NO_CONTEXT_FILE"   # short map; skip if already in your context
+cat _agent-tasks/ACTIVE_GOALS.md 2>/dev/null
+tail -15 _agent-tasks/SESSION_LOG.md 2>/dev/null   # never read the whole log; grep it for this topic
 ```
 
 From this file, extract and internalize before proceeding:
 - **Project identity** — name, domain, goal, audience, constraints
 - **Tech stack** — language, framework, tools, package manager
-- **Project structure** — which files exist and what they do (skip re-exploring the codebase)
-- **Session Log** — what was done in prior sessions; do not repeat completed work
-- **Active Goals** — what is planned or in progress; use this to inform task decomposition
+- **Where things are / Routing** — which folders hold what, and which file to read for which job (skip re-exploring the codebase)
+- **Recent log** (`_agent-tasks/SESSION_LOG.md`) — what was done before; grep it for this topic and do not repeat finished work
+- **Open goals** (`_agent-tasks/ACTIVE_GOALS.md`) — what is planned or in progress; use this to inform task decomposition
 - **Working Rules** — constraints that apply to this session (style, permissions, environment)
 
-If no context file exists, note the absence and proceed without it.
+If no context file exists, note the absence and proceed without it. (Older projects keep everything in `.claude.md`; the `cat` above falls back to it.)
 
 ## Phase 0.5: Skill Auto-Selection
 
@@ -114,11 +116,11 @@ AGENT ROLE: [role-name]
 You are part of a Claude agent team. Your ONLY responsibility is: [specific scope].
 
 FIRST: Read these two files before doing any other work:
-1. .claude.md (or .gemini.md / agents.md) — shared project context, tech stack, working rules, session history
+1. AGENTS.md — the short project map and rules (skip if already in your context; never read _agent-tasks/SESSION_LOG.md whole)
 2. AGENT_TASKS.md — full task list, contract chain, and your specific assignment
 
 Do not explore the codebase beyond what is necessary for your assigned scope.
-The context files contain what you need.
+AGENTS.md and AGENT_TASKS.md contain what you need.
 
 CONTRACT TO EMIT: When done, write output to [file path] and end your response with:
 CONTRACT READY: [role-name]
@@ -163,14 +165,16 @@ the main pane.
 
 ## Context Update (MANDATORY — run after every use)
 
-When all phases are complete, update all three context files:
+When all phases are complete, follow the **Logging** section of `AGENTS.md`:
 
-1. Edit `.claude.md` — append to **Session Log**, update **Active Goals**, **Project Structure**, **Tech Stack**:
-   - Session log format: `YYYY-MM-DD · /build-with-agent-team · [what was built] · [key decisions or files created]`
-2. Sync to the other two files:
+1. Append ONE line (≤300 chars) to the END of `_agent-tasks/SESSION_LOG.md` (create the file if missing):
+   - Format: `YYYY-MM-DD · /build-with-agent-team · [what was built] · [key decisions or files created]`
+   - Details belong in the project's notes or docs, not in the log line.
+2. Update `_agent-tasks/ACTIVE_GOALS.md` if goals opened or closed.
+3. Only if a RULE changed (a new standing rule or a lesson worth keeping): edit `AGENTS.md` (keep it under ~150 lines), then copy it to the other tools' files:
 
 ```bash
-cp .claude.md .gemini.md && cp .claude.md agents.md && echo "Context synced → .gemini.md + agents.md"
+cp AGENTS.md .claude.md && cp AGENTS.md .gemini.md && echo "Synced AGENTS.md → .claude.md + .gemini.md"
 ```
 
-All three files must be identical after every run.
+Never copy `.claude.md` onto `AGENTS.md`, and never append history to `AGENTS.md`: it is the source and stays a short map.

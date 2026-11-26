@@ -68,9 +68,9 @@ const AGENTS: AgentPane[] = [
     color: 'text-purple-400',
     dotColor: 'bg-purple-400',
     lines: [
-      '> Reading .claude.md session log',
+      '> Grepping _agent-tasks/SESSION_LOG.md',
       '> Updating AGENT_TASKS.md...',
-      '> Syncing .gemini.md + agents.md',
+      '> Appending 1 line to SESSION_LOG.md',
       '> Session context updated ✓',
     ],
   },

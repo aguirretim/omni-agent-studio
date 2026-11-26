@@ -90,8 +90,8 @@ function GoalsTab({ projectPath }: GoalsTabProps) {
           {[
             {
               n: '1',
-              title: 'Open your AI Instructions',
-              desc: 'Go to the Shared Context page and find (or add) the "Active Goals" section.',
+              title: 'Set up your project map',
+              desc: 'Open the Shared Context page once. It creates AGENTS.md and the goal list _agent-tasks/ACTIVE_GOALS.md in your project.',
               action: (
                 <Link
                   href="/context"
@@ -107,7 +107,7 @@ function GoalsTab({ projectPath }: GoalsTabProps) {
               title: 'Add your goals using checkbox format',
               desc: (
                 <>
-                  Under <span className="font-mono text-zinc-300 text-[10px]">## Active Goals</span>, add one line per goal:{' '}
+                  In <span className="font-mono text-zinc-300 text-[10px]">_agent-tasks/ACTIVE_GOALS.md</span>, add one line per goal:{' '}
                   <span className="font-mono text-zinc-300 text-[10px]">- [ ] Add dark mode to settings page</span>
                 </>
               ),
@@ -301,14 +301,14 @@ function HowItWorksTab() {
   const steps = [
     {
       step: '1',
-      title: 'Add goals to Shared Context',
+      title: 'Add goals to ACTIVE_GOALS.md',
       desc: (
         <>
           Open the{' '}
           <Link href="/context" className="text-emerald-400 hover:text-emerald-300 underline underline-offset-2 transition-colors">
             Shared Context
           </Link>{' '}
-          page and add tasks under the <span className="font-mono text-zinc-300">## Active Goals</span> section using checkbox syntax:
+          page once to create the project map, then add tasks to <span className="font-mono text-zinc-300">_agent-tasks/ACTIVE_GOALS.md</span> using checkbox syntax:
           <br />
           <span className="font-mono text-zinc-400 text-[11px]">- [ ] Implement feature X</span>
         </>
@@ -317,7 +317,7 @@ function HowItWorksTab() {
     {
       step: '2',
       title: 'Run /ralph in Claude Code',
-      desc: 'Ralph reads your Active Goals, implements one goal per iteration, commits the changes, and marks the goal [x]. The loop continues until all goals are complete.',
+      desc: 'Ralph reads your goal list, implements one goal per iteration, commits the changes, and marks the goal [x]. The loop continues until all goals are complete.',
     },
     {
       step: '3',
@@ -361,7 +361,7 @@ function HowItWorksTab() {
       <div className="flex items-start gap-2.5 bg-zinc-800/50 border border-zinc-700 rounded-lg px-4 py-3">
         <HelpCircle size={14} className="text-zinc-500 shrink-0 mt-0.5" />
         <p className="text-[11px] text-zinc-400 leading-snug">
-          <span className="font-semibold text-zinc-300">No PRD or prd.json needed</span> — Ralph reads your Active Goals directly from the shared context file (<span className="font-mono text-zinc-300">.claude.md</span> / <span className="font-mono text-zinc-300">.gemini.md</span> / <span className="font-mono text-zinc-300">agents.md</span>).
+          <span className="font-semibold text-zinc-300">No PRD or prd.json needed</span> — Ralph reads your goals directly from <span className="font-mono text-zinc-300">_agent-tasks/ACTIVE_GOALS.md</span> (older projects: the <span className="font-mono text-zinc-300">## Active Goals</span> section of <span className="font-mono text-zinc-300">.claude.md</span>).
         </p>
       </div>
 
@@ -432,7 +432,7 @@ export default function RalphPage() {
         {/* Page heading */}
         <div>
           <h2 className="text-lg font-semibold text-zinc-100">Ralph</h2>
-          <p className="text-sm text-zinc-500 mt-1">Autonomous development loop — reads Active Goals from shared context</p>
+          <p className="text-sm text-zinc-500 mt-1">Autonomous development loop — reads goals from _agent-tasks/ACTIVE_GOALS.md</p>
         </div>
 
         {/* Main card */}

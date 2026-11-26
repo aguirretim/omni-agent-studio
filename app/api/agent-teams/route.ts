@@ -13,21 +13,23 @@ $ARGUMENTS
 
 ## Step 0: Load Context (always run first, before anything else)
 
-Read the shared context file to get full project state:
+Read the project's short map (\`AGENTS.md\`: where things are, routing, rules), the open goals and the latest log lines. \`AGENTS.md\` is usually loaded automatically; skip the first \`cat\` if it is already in your context:
 
 \`\`\`bash
-cat .claude.md 2>/dev/null || cat .gemini.md 2>/dev/null || cat agents.md 2>/dev/null || echo "NO_CONTEXT_FILE"
+cat AGENTS.md 2>/dev/null || cat .claude.md 2>/dev/null || echo "NO_CONTEXT_FILE"   # short map; skip if already in your context
+cat _agent-tasks/ACTIVE_GOALS.md 2>/dev/null
+tail -15 _agent-tasks/SESSION_LOG.md 2>/dev/null   # never read the whole log; grep it for this topic
 \`\`\`
 
 From this file, extract and internalize before proceeding:
 - **Project identity** — name, domain, goal, audience, constraints
 - **Tech stack** — language, framework, tools, package manager
-- **Project structure** — which files exist and what they do (skip re-exploring the codebase)
-- **Session Log** — what was done in prior sessions; do not repeat completed work
-- **Active Goals** — what is planned or in progress; use this to inform task decomposition
+- **Where things are / Routing** — which folders hold what, and which file to read for which job (skip re-exploring the codebase)
+- **Recent log** (\`_agent-tasks/SESSION_LOG.md\`) — what was done before; grep it for this topic and do not repeat finished work
+- **Open goals** (\`_agent-tasks/ACTIVE_GOALS.md\`) — what is planned or in progress; use this to inform task decomposition
 - **Working Rules** — constraints that apply to this session (style, permissions, environment)
 
-If no context file exists, note the absence and proceed without it.
+If no context file exists, note the absence and proceed without it. (Older projects keep everything in \`.claude.md\`; the \`cat\` above falls back to it.)
 
 ## Phase 0.5: Skill Auto-Selection
 
@@ -121,11 +123,11 @@ AGENT ROLE: [role-name]
 You are part of a Claude agent team. Your ONLY responsibility is: [specific scope].
 
 FIRST: Read these two files before doing any other work:
-1. .claude.md (or .gemini.md / agents.md) — shared project context, tech stack, working rules, session history
+1. AGENTS.md — the short project map and rules (skip if already in your context; never read _agent-tasks/SESSION_LOG.md whole)
 2. AGENT_TASKS.md — full task list, contract chain, and your specific assignment
 
 Do not explore the codebase beyond what is necessary for your assigned scope.
-The context files contain what you need.
+AGENTS.md and AGENT_TASKS.md contain what you need.
 
 CONTRACT TO EMIT: When done, write output to [file path] and end your response with:
 CONTRACT READY: [role-name]
@@ -170,17 +172,19 @@ the main pane.
 
 ## Context Update (MANDATORY — run after every use)
 
-When all phases are complete, update all three context files:
+When all phases are complete, follow the **Logging** section of \`AGENTS.md\`:
 
-1. Edit \`.claude.md\` — append to **Session Log**, update **Active Goals**, **Project Structure**, **Tech Stack**:
-   - Session log format: \`YYYY-MM-DD · /build-with-agent-team · [what was built] · [key decisions or files created]\`
-2. Sync to the other two files:
+1. Append ONE line (≤300 chars) to the END of \`_agent-tasks/SESSION_LOG.md\` (create the file if missing):
+   - Format: \`YYYY-MM-DD · /build-with-agent-team · [what was built] · [key decisions or files created]\`
+   - Details belong in the project's notes or docs, not in the log line.
+2. Update \`_agent-tasks/ACTIVE_GOALS.md\` if goals opened or closed.
+3. Only if a RULE changed (a new standing rule or a lesson worth keeping): edit \`AGENTS.md\` (keep it under ~150 lines), then copy it to the other tools' files:
 
 \`\`\`bash
-cp .claude.md .gemini.md && cp .claude.md agents.md && echo "Context synced → .gemini.md + agents.md"
+cp AGENTS.md .claude.md && cp AGENTS.md .gemini.md && echo "Synced AGENTS.md → .claude.md + .gemini.md"
 \`\`\`
 
-All three files must be identical after every run.
+Never copy \`.claude.md\` onto \`AGENTS.md\`, and never append history to \`AGENTS.md\`: it is the source and stays a short map.
 `;
 
 // ── Skill 2: Hybrid team (/build-hybrid-team) ──────────────────────────────
@@ -194,21 +198,23 @@ Your task: $ARGUMENTS
 
 ## Step 0: Load Context (always run first, before anything else)
 
-Read the shared context file to get full project state:
+Read the project's short map (\`AGENTS.md\`: where things are, routing, rules), the open goals and the latest log lines. \`AGENTS.md\` is usually loaded automatically; skip the first \`cat\` if it is already in your context:
 
 \`\`\`bash
-cat .claude.md 2>/dev/null || cat .gemini.md 2>/dev/null || cat agents.md 2>/dev/null || echo "NO_CONTEXT_FILE"
+cat AGENTS.md 2>/dev/null || cat .claude.md 2>/dev/null || echo "NO_CONTEXT_FILE"   # short map; skip if already in your context
+cat _agent-tasks/ACTIVE_GOALS.md 2>/dev/null
+tail -15 _agent-tasks/SESSION_LOG.md 2>/dev/null   # never read the whole log; grep it for this topic
 \`\`\`
 
 From this file, extract and internalize before proceeding:
 - **Project identity** — name, domain, goal, audience, constraints
 - **Tech stack** — language, framework, tools, package manager (do not re-detect what's already known)
-- **Project structure** — which files exist and what they do (skip re-exploring the codebase)
-- **Session Log** — what was done in prior sessions; do not repeat completed work
-- **Active Goals** — what is planned or in progress; use this to inform task decomposition and tool assignment
+- **Where things are / Routing** — which folders hold what, and which file to read for which job (skip re-exploring the codebase)
+- **Recent log** (\`_agent-tasks/SESSION_LOG.md\`) — what was done before; grep it for this topic and do not repeat finished work
+- **Open goals** (\`_agent-tasks/ACTIVE_GOALS.md\`) — what is planned or in progress; use this to inform task decomposition and tool assignment
 - **Working Rules** — constraints that apply to this session (style, permissions, environment)
 
-If no context file exists, note the absence and proceed without it.
+If no context file exists, note the absence and proceed without it. (Older projects keep everything in \`.claude.md\`; the \`cat\` above falls back to it.)
 
 ## Tool Assignment — use the right tool for each job
 
@@ -274,11 +280,11 @@ AGENT ROLE: [role-name]
 You are part of a hybrid agent team led by Claude. Your ONLY responsibility is: [specific scope].
 
 FIRST: Read these two files before doing any other work:
-1. .claude.md (or .gemini.md / agents.md) — shared project context, tech stack, working rules, session history
+1. AGENTS.md — the short project map and rules (skip if already in your context; never read _agent-tasks/SESSION_LOG.md whole)
 2. AGENT_TASKS.md — full task list, contract chain, and your specific assignment
 
 Do not explore the codebase beyond what is necessary for your assigned scope.
-The context files contain what you need.
+AGENTS.md and AGENT_TASKS.md contain what you need.
 
 CONTRACT TO EMIT: When done, write your output to [file path] and end your response with:
 CONTRACT READY: [role-name]
@@ -307,7 +313,7 @@ powershell -Command "gemini -p 'TOOL RESTRICTIONS (STRICT): You have access to r
 
 You are a codebase analyst. The project file tree is:
 
-[INJECT \$FILE_TREE HERE]
+[INJECT $FILE_TREE HERE]
 
 Read the key files listed above (package.json, tsconfig, main entry points, API routes, components) and produce:
 1. Complete folder structure with file purposes
@@ -374,17 +380,19 @@ Gemini and specialist tools are bash calls and are not affected by teammate mode
 
 ## Context Update (MANDATORY — run after every use)
 
-When all phases are complete, update all three context files:
+When all phases are complete, follow the **Logging** section of \`AGENTS.md\`:
 
-1. Edit \`.claude.md\` — append to **Session Log**, update **Active Goals**, **Project Structure**, **Tech Stack**:
-   - Session log format: \`YYYY-MM-DD · /build-hybrid-team · [what was built] · [which tools handled which phases] · [key decisions]\`
-2. Sync to the other two files:
+1. Append ONE line (≤300 chars) to the END of \`_agent-tasks/SESSION_LOG.md\` (create the file if missing):
+   - Format: \`YYYY-MM-DD · /build-hybrid-team · [what was built] · [which tools handled which phases] · [key decisions]\`
+   - Details belong in the project's notes or docs, not in the log line.
+2. Update \`_agent-tasks/ACTIVE_GOALS.md\` if goals opened or closed.
+3. Only if a RULE changed (a new standing rule or a lesson worth keeping): edit \`AGENTS.md\` (keep it under ~150 lines), then copy it to the other tools' files:
 
 \`\`\`bash
-cp .claude.md .gemini.md && cp .claude.md agents.md && echo "Context synced → .gemini.md + agents.md"
+cp AGENTS.md .claude.md && cp AGENTS.md .gemini.md && echo "Synced AGENTS.md → .claude.md + .gemini.md"
 \`\`\`
 
-All three files must be identical after every run.
+Never copy \`.claude.md\` onto \`AGENTS.md\`, and never append history to \`AGENTS.md\`: it is the source and stays a short map.
 `;
 
 // ── Skill 3: Usage-aware router (/build-smart-delegate) ────────────────────
@@ -396,21 +404,23 @@ Your task: $ARGUMENTS
 
 ## Step 0: Load Context (always run first, before anything else)
 
-Read the shared context file to get full project state:
+Read the project's short map (\`AGENTS.md\`: where things are, routing, rules), the open goals and the latest log lines. \`AGENTS.md\` is usually loaded automatically; skip the first \`cat\` if it is already in your context:
 
 \`\`\`bash
-cat .claude.md 2>/dev/null || cat .gemini.md 2>/dev/null || cat agents.md 2>/dev/null || echo "NO_CONTEXT_FILE"
+cat AGENTS.md 2>/dev/null || cat .claude.md 2>/dev/null || echo "NO_CONTEXT_FILE"   # short map; skip if already in your context
+cat _agent-tasks/ACTIVE_GOALS.md 2>/dev/null
+tail -15 _agent-tasks/SESSION_LOG.md 2>/dev/null   # never read the whole log; grep it for this topic
 \`\`\`
 
 From this file, extract and internalize before probing tools or choosing a strategy:
 - **Project identity** — name, domain, goal, audience, constraints
 - **Tech stack** — language, framework, tools, package manager (do not re-detect what's already known)
-- **Project structure** — which files exist and what they do (skip re-exploring the codebase)
-- **Session Log** — what was done in prior sessions; do not repeat completed work
-- **Active Goals** — what is planned or in progress; factor this into task size estimation for Step 1
+- **Where things are / Routing** — which folders hold what, and which file to read for which job (skip re-exploring the codebase)
+- **Recent log** (\`_agent-tasks/SESSION_LOG.md\`) — what was done before; grep it for this topic and do not repeat finished work
+- **Open goals** (\`_agent-tasks/ACTIVE_GOALS.md\`) — what is planned or in progress; factor this into task size estimation for Step 1
 - **Working Rules** — constraints that apply to this session
 
-If no context file exists, note the absence and proceed without it.
+If no context file exists, note the absence and proceed without it. (Older projects keep everything in \`.claude.md\`; the \`cat\` above falls back to it.)
 
 ## Step 1: Probe Every Tool — Run All Checks Before Deciding Anything
 
@@ -619,18 +629,20 @@ Do not attempt the task. Do not produce partial output.
 
 ## Context Update (MANDATORY — run after every use)
 
-When the task is complete (or if Pausing), update all three context files:
+When the task is complete (or if Pausing), follow the **Logging** section of \`AGENTS.md\`:
 
-1. Edit \`.claude.md\` — append to **Session Log**, update **Active Goals**, **Project Structure**, **Tech Stack**:
-   - Session log format: \`YYYY-MM-DD · /build-smart-delegate · [strategy chosen] · [capability matrix scores] · [what was built or why paused]\`
+1. Append ONE line (≤300 chars) to the END of \`_agent-tasks/SESSION_LOG.md\` (create the file if missing):
+   - Format: \`YYYY-MM-DD · /build-smart-delegate · [strategy chosen] · [capability matrix scores] · [what was built or why paused]\`
    - If Pause strategy: note which tools are missing and what needs to be installed
-2. Sync to the other two files:
+   - Details belong in the project's notes or docs, not in the log line.
+2. Update \`_agent-tasks/ACTIVE_GOALS.md\` if goals opened or closed.
+3. Only if a RULE changed (a new standing rule or a lesson worth keeping): edit \`AGENTS.md\` (keep it under ~150 lines), then copy it to the other tools' files:
 
 \`\`\`bash
-cp .claude.md .gemini.md && cp .claude.md agents.md && echo "Context synced → .gemini.md + agents.md"
+cp AGENTS.md .claude.md && cp AGENTS.md .gemini.md && echo "Synced AGENTS.md → .claude.md + .gemini.md"
 \`\`\`
 
-All three files must be identical after every run. This keeps Gemini, Codex, and any other agent that opens this folder fully in sync.
+Never copy \`.claude.md\` onto \`AGENTS.md\`, and never append history to \`AGENTS.md\`: it is the source and stays a short map.
 `;
 
 // ── Skill 4: Multi-model fact checker (/fact-check) ─────────────────────────
@@ -647,7 +659,9 @@ If no argument was provided, ask the user for a claim before proceeding.
 ## Step 0: Load Context
 
 \`\`\`bash
-cat .claude.md 2>/dev/null || cat .gemini.md 2>/dev/null || cat agents.md 2>/dev/null || echo "NO_CONTEXT_FILE"
+cat AGENTS.md 2>/dev/null || cat .claude.md 2>/dev/null || echo "NO_CONTEXT_FILE"   # short map; skip if already in your context
+cat _agent-tasks/ACTIVE_GOALS.md 2>/dev/null
+tail -15 _agent-tasks/SESSION_LOG.md 2>/dev/null   # never read the whole log; grep it for this topic
 \`\`\`
 
 Note the project path and working rules. The report will be saved to the project root.
@@ -885,21 +899,25 @@ Tell the user:
 
 ## Context Update (MANDATORY)
 
-After the report is saved, update all three context files:
+After the report is saved, follow the **Logging** section of \`AGENTS.md\`:
 
-1. Edit \`.claude.md\` — append to **Session Log** and add any follow-up research goals:
-   - Session log format: \`YYYY-MM-DD · /fact-check · [models used] · [claim slug] · [final verdict]\`
-2. Sync to the other two files:
+1. Append ONE line (≤300 chars) to the END of \`_agent-tasks/SESSION_LOG.md\` (create the file if missing):
+   - Format: \`YYYY-MM-DD · /fact-check · [models used] · [claim slug] · [final verdict]\`
+   - Details belong in the project's notes or docs, not in the log line.
+2. Update \`_agent-tasks/ACTIVE_GOALS.md\` if goals opened or closed.
+3. Only if a RULE changed (a new standing rule or a lesson worth keeping): edit \`AGENTS.md\` (keep it under ~150 lines), then copy it to the other tools' files:
 
 \`\`\`bash
-cp .claude.md .gemini.md && cp .claude.md agents.md && echo "Context synced → .gemini.md + agents.md"
+cp AGENTS.md .claude.md && cp AGENTS.md .gemini.md && echo "Synced AGENTS.md → .claude.md + .gemini.md"
 \`\`\`
+
+Never copy \`.claude.md\` onto \`AGENTS.md\`, and never append history to \`AGENTS.md\`: it is the source and stays a short map.
 `;
 
 // ── Skill 5: Session checkpoint (/checkpoint) ────────────────────────────────
 const SKILL_CHECKPOINT = `# Checkpoint — Session Context Sync
 
-You are closing out a work session. Audit what changed, update every shared context file with accurate current state, and leave the project fully documented so every AI tool picks up exactly where this session ended.
+You are closing out a work session. Audit what changed, log it in \`_agent-tasks/\`, update open goals, and leave the project fully documented so every AI tool picks up exactly where this session ended.
 
 ---
 
@@ -907,36 +925,37 @@ You are closing out a work session. Audit what changed, update every shared cont
 
 ### 0a. Git status — what changed?
 
-\\\`\\\`\\\`bash
+\`\`\`bash
 git status --short 2>/dev/null || echo "Not a git repo"
 git diff --stat HEAD 2>/dev/null
-\\\`\\\`\\\`
+\`\`\`
 
 ### 0b. New or untracked files
 
-\\\`\\\`\\\`bash
+\`\`\`bash
 git ls-files --others --exclude-standard 2>/dev/null
-\\\`\\\`\\\`
+\`\`\`
 
 ### 0c. Recent commits this session
 
-\\\`\\\`\\\`bash
+\`\`\`bash
 git log --oneline --since="12 hours ago" 2>/dev/null || git log --oneline -5
-\\\`\\\`\\\`
+\`\`\`
 
 Internalize: which files changed (git diff stat), new files (untracked), work done (commits + in-session context).
 
 ---
 
-## Step 1: Read all current context files
+## Step 1: Read only what you need
 
-\\\`\\\`\\\`bash
-echo "=== .claude.md ===" && cat .claude.md 2>/dev/null || echo "(not found)"
-echo "=== .gemini.md ===" && cat .gemini.md 2>/dev/null || echo "(not found)"
-echo "=== agents.md ===" && cat agents.md 2>/dev/null || echo "(not found)"
-\\\`\\\`\\\`
+\`AGENTS.md\` (the short map and rules) is usually loaded already; if not, read it once. Do not read \`.claude.md\`/\`.gemini.md\`: they are copies of it.
 
-Note what Session Log, Active Goals, and Project Structure currently say. You will append and patch — never replace or delete existing content.
+\`\`\`bash
+cat _agent-tasks/ACTIVE_GOALS.md 2>/dev/null || echo "(no ACTIVE_GOALS.md yet)"
+tail -5 _agent-tasks/SESSION_LOG.md 2>/dev/null || echo "(no SESSION_LOG.md yet)"
+\`\`\`
+
+Never read SESSION_LOG.md whole. You will append and patch — never replace or delete existing content.
 
 ---
 
@@ -951,31 +970,29 @@ Before editing any file, plan:
 
 3. **New goals**: Any follow-ups, blockers, or TODOs from the audit?
 
-4. **Project Structure changes**: Files added → add to structure. Files deleted → remove. Files renamed → update.
+4. **Map changes**: a top-level folder added, moved or removed → update **Where things are** in \`AGENTS.md\`. Ordinary file changes do not go in the map.
 
-5. **Tech Stack changes**: New packages in package.json since last context update?
+5. **Rule changes**: only a new standing rule, a lesson worth keeping, or a stack change edits \`AGENTS.md\` (one line each; keep it under ~150 lines).
 
 ---
 
-## Step 3: Update .claude.md
+## Step 3: Write the updates
 
-Edit \`.claude.md\` directly:
-- Append session log entry at the bottom of \`## Session Log\`
-- Update \`[ ]\` → \`[x]\` for completed goals only
-- Add new goals under \`## Active Goals\`
-- Update \`## Project Structure\` for file changes
-- Update \`## Tech Stack\` if new dependencies were introduced
+- Append the ONE log line (≤300 chars) at the end of \`_agent-tasks/SESSION_LOG.md\` (create the file if missing).
+- In \`_agent-tasks/ACTIVE_GOALS.md\`: mark finished goals \`[x]\` (or move them into the log) and add new open goals.
+- Edit \`AGENTS.md\` only for the map or rule changes from Step 2.
 
 **Do not rewrite existing content — append and patch only.**
 
 ---
 
-## Step 4: Sync to .gemini.md and agents.md
+## Step 4: Only if AGENTS.md changed, copy it to the other tools' files
 
-\\\`\\\`\\\`bash
-cp .claude.md .gemini.md && echo "Synced → .gemini.md"
-cp .claude.md agents.md && echo "Synced → agents.md"
-\\\`\\\`\\\`
+\`\`\`bash
+cp AGENTS.md .claude.md && cp AGENTS.md .gemini.md && echo "Synced AGENTS.md → .claude.md + .gemini.md"
+\`\`\`
+
+Never copy \`.claude.md\` onto \`AGENTS.md\`: \`AGENTS.md\` is the source.
 
 ---
 
@@ -984,17 +1001,17 @@ cp .claude.md agents.md && echo "Synced → agents.md"
 - Exact session log line added
 - Goals marked [x] complete (list them)
 - Goals still open (list them)
-- Whether .gemini.md and agents.md were synced
+- Whether AGENTS.md changed and was copied to .claude.md/.gemini.md
 - Any new goals added
 
 ---
 
 ## Rules
 
-- **Never delete** existing Session Log entries — only append
+- **Never delete** existing SESSION_LOG.md entries — only append
 - **Never fabricate** completed goals — only mark [x] with file evidence
 - **Do not commit** — just update context files; the user decides when to commit
-- If \`.claude.md\` doesn't exist, create it from the project template before proceeding
+- If \`AGENTS.md\` doesn't exist, create it from the OmniAgent Studio context page (Shared Context) before proceeding; an old long \`.claude.md\` is read but not rewritten
 `;
 
 // ── Skill 6: Smart Commit (/commit) ────────────────────────────────────────
@@ -4066,16 +4083,16 @@ Framework generates runbooks with three components:
 const SKILL_RALPH = `# Ralph — Autonomous Development Loop
 
 You are an autonomous coding agent running one iteration of the Ralph loop.
-Your task list comes from the **Active Goals** in the shared context file — no PRD or prd.json needed.
+Your task list comes from \`_agent-tasks/ACTIVE_GOALS.md\` (older projects: the \`## Active Goals\` section of \`.claude.md\`) — no PRD or prd.json needed.
 
 ## Your Task
 
-1. Read the shared context file:
+1. Read the goal list (and \`AGENTS.md\`, the short map, if it is not already in your context):
    \`\`\`bash
-   cat .claude.md 2>/dev/null || cat .gemini.md 2>/dev/null || cat agents.md 2>/dev/null
+   cat _agent-tasks/ACTIVE_GOALS.md 2>/dev/null || sed -n '/^## Active Goals/,/^## /p' .claude.md 2>/dev/null
    \`\`\`
 2. Read \`progress.txt\` if it exists — check the **Codebase Patterns** section at the top first
-3. Find the **first \`- [ ]\` item** in the \`## Active Goals\` section — this is the goal to implement
+3. Find the **first \`- [ ]\` item** in that goal list — this is the goal to implement
    - Skip any \`- [x]\` items (already done)
    - If no \`[ ]\` items remain, skip to the Completion Check
 4. Implement that ONE goal — keep changes minimal and focused
@@ -4089,12 +4106,12 @@ Your task list comes from the **Active Goals** in the shared context file — no
    \`\`\`bash
    git add -A && git commit -m "feat: [goal title]"
    \`\`\`
-8. In the shared context file, mark the completed goal: change \`- [ ]\` → \`- [x]\`
-9. Sync the updated context to all three flavors:
+8. In \`_agent-tasks/ACTIVE_GOALS.md\` (or the old \`.claude.md\` section), mark the completed goal: change \`- [ ]\` → \`- [x]\`
+9. Only if you changed a rule in \`AGENTS.md\`, copy it to the other tools' files (never the other way):
    \`\`\`bash
-   cp .claude.md .gemini.md && cp .claude.md agents.md
+   cp AGENTS.md .claude.md && cp AGENTS.md .gemini.md
    \`\`\`
-10. Append a one-line entry to the **Session Log** in the shared context:
+10. Append ONE line to the end of \`_agent-tasks/SESSION_LOG.md\` (create it if missing):
     \`\`\`
     YYYY-MM-DD · /ralph · [what was implemented] · [key files changed]
     \`\`\`
@@ -4112,7 +4129,7 @@ Your task list comes from the **Active Goals** in the shared context file — no
 
 ## Completion Check
 
-After completing a goal, re-read the \`## Active Goals\` section and check if ALL items have \`[x]\`.
+After completing a goal, re-read the goal list and check if ALL items have \`[x]\`.
 
 - If ALL goals are \`[x]\`: reply with \`<promise>COMPLETE</promise>\`
 - If uncompleted goals remain: end your response normally — the next Ralph iteration will continue
@@ -4124,12 +4141,12 @@ After completing a goal, re-read the \`## Active Goals\` section and check if AL
 - Follow existing code patterns in the project
 - For UI changes: verify in browser if browser tools are available; note manual verification needed otherwise
 - Keep CI green (typecheck must pass)
-- The shared context file is the source of truth — always sync .gemini.md and agents.md after modifying .claude.md
+- \`_agent-tasks/ACTIVE_GOALS.md\` is the task list and \`_agent-tasks/SESSION_LOG.md\` the history; \`AGENTS.md\` holds rules only and is copied over \`.claude.md\`/\`.gemini.md\` after a rule change
 
 ## Important
 
 - Work on ONE goal per iteration
-- Do NOT create prd.json — the shared context is your task list
+- Do NOT create prd.json — ACTIVE_GOALS.md is your task list
 - The \`<promise>COMPLETE</promise>\` signal is how the Ralph loop knows to stop
 - Read Codebase Patterns in progress.txt BEFORE starting any implementation
 `;
@@ -5019,7 +5036,7 @@ export async function POST(req: NextRequest) {
         'You can read any of the installed skill files below to get their specific details when you need them:',
         safeSkillReadList,
         '',
-        'Also read the shared project context files first (.claude.md, .gemini.md, agents.md if present) to understand the project state, then proceed with the task using the details and skills above.',
+        'Also read the project map first (AGENTS.md, or .claude.md in older projects) and _agent-tasks/ACTIVE_GOALS.md if present; grep _agent-tasks/SESSION_LOG.md for this topic instead of reading it whole. Then use the task details and skill files above to decide how to proceed.',
       ].join('\n');
       const ps1Lines = [
         `$env:PATH = [System.Environment]::GetEnvironmentVariable('PATH','User') + ';' + [System.Environment]::GetEnvironmentVariable('PATH','Machine')`,

@@ -6,21 +6,23 @@ Your task: $ARGUMENTS
 
 ## Step 0: Load Context (always run first, before anything else)
 
-Read the shared context file to get full project state:
+Read the project's short map (`AGENTS.md`: where things are, routing, rules), the open goals and the latest log lines. `AGENTS.md` is usually loaded automatically; skip the first `cat` if it is already in your context:
 
 ```bash
-cat .claude.md 2>/dev/null || cat .gemini.md 2>/dev/null || cat agents.md 2>/dev/null || echo "NO_CONTEXT_FILE"
+cat AGENTS.md 2>/dev/null || cat .claude.md 2>/dev/null || echo "NO_CONTEXT_FILE"   # short map; skip if already in your context
+cat _agent-tasks/ACTIVE_GOALS.md 2>/dev/null
+tail -15 _agent-tasks/SESSION_LOG.md 2>/dev/null   # never read the whole log; grep it for this topic
 ```
 
 From this file, extract and internalize before probing tools or choosing a strategy:
 - **Project identity** — name, domain, goal, audience, constraints
 - **Tech stack** — language, framework, tools, package manager (do not re-detect what's already known)
-- **Project structure** — which files exist and what they do (skip re-exploring the codebase)
-- **Session Log** — what was done in prior sessions; do not repeat completed work
-- **Active Goals** — what is planned or in progress; factor this into task size estimation for Step 1
+- **Where things are / Routing** — which folders hold what, and which file to read for which job (skip re-exploring the codebase)
+- **Recent log** (`_agent-tasks/SESSION_LOG.md`) — what was done before; grep it for this topic and do not repeat finished work
+- **Open goals** (`_agent-tasks/ACTIVE_GOALS.md`) — what is planned or in progress; factor this into task size estimation for Step 1
 - **Working Rules** — constraints that apply to this session
 
-If no context file exists, note the absence and proceed without it.
+If no context file exists, note the absence and proceed without it. (Older projects keep everything in `.claude.md`; the `cat` above falls back to it.)
 
 ## Step 1: Probe Every Tool — Run All Checks Before Deciding Anything
 
@@ -229,15 +231,17 @@ Do not attempt the task. Do not produce partial output.
 
 ## Context Update (MANDATORY — run after every use)
 
-When the task is complete (or if Pausing), update all three context files:
+When the task is complete (or if Pausing), follow the **Logging** section of `AGENTS.md`:
 
-1. Edit `.claude.md` — append to **Session Log**, update **Active Goals**, **Project Structure**, **Tech Stack**:
-   - Session log format: `YYYY-MM-DD · /build-smart-delegate · [strategy chosen] · [capability matrix scores] · [what was built or why paused]`
+1. Append ONE line (≤300 chars) to the END of `_agent-tasks/SESSION_LOG.md` (create the file if missing):
+   - Format: `YYYY-MM-DD · /build-smart-delegate · [strategy chosen] · [capability matrix scores] · [what was built or why paused]`
    - If Pause strategy: note which tools are missing and what needs to be installed
-2. Sync to the other two files:
+   - Details belong in the project's notes or docs, not in the log line.
+2. Update `_agent-tasks/ACTIVE_GOALS.md` if goals opened or closed.
+3. Only if a RULE changed (a new standing rule or a lesson worth keeping): edit `AGENTS.md` (keep it under ~150 lines), then copy it to the other tools' files:
 
 ```bash
-cp .claude.md .gemini.md && cp .claude.md agents.md && echo "Context synced → .gemini.md + agents.md"
+cp AGENTS.md .claude.md && cp AGENTS.md .gemini.md && echo "Synced AGENTS.md → .claude.md + .gemini.md"
 ```
 
-All three files must be identical after every run. This keeps Gemini, Codex, and any other agent that opens this folder fully in sync.
+Never copy `.claude.md` onto `AGENTS.md`, and never append history to `AGENTS.md`: it is the source and stays a short map.
