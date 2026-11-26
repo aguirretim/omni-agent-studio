@@ -4684,6 +4684,17 @@ export async function POST(req: NextRequest) {
           // clipboard via Get-Clipboard, restoring native WT behavior.
           'tmux set-option -g mouse on',
           'tmux set-option -g default-terminal "screen-256color"',
+          // Give the pane a real scrollback buffer (tmux default is only 2000 lines).
+          'tmux set-option -g history-limit 50000',
+          // ── Mouse-wheel scrolling that behaves like a normal terminal ──────────
+          // Without these bindings, `mouse on` makes the wheel enter copy-mode and
+          // STAY there — the terminal looks frozen until you press q. These bindings:
+          //  • forward the wheel to full-screen apps that track the mouse (the Claude
+          //    TUI, less, vim, htop) so their own scroll works, otherwise
+          //  • enter copy-mode with -e so scrolling back to the bottom AUTO-EXITS
+          //    copy-mode instead of getting stuck.
+          'tmux bind-key -n WheelUpPane if-shell -F -t = "#{mouse_any_flag}" "send-keys -M" "if -Ft= \'#{pane_in_mode}\' \'send-keys -M\' \'copy-mode -e; send-keys -M\'"',
+          'tmux bind-key -n WheelDownPane if-shell -F -t = "#{mouse_any_flag}" "send-keys -M" "if -Ft= \'#{pane_in_mode}\' \'send-keys -M\' \'send-keys -M\'"',
           // Right-click → paste from Windows clipboard (fixes right-click in WT+tmux)
           'tmux bind-key -n MouseDown3Pane run "powershell.exe -NoProfile -NonInteractive -Command \'Get-Clipboard\' 2>/dev/null | tr -d \'\\r\' | tmux load-buffer -; tmux paste-buffer"',
           'tmux attach-session -t "$SESSION"',

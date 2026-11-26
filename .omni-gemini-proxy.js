@@ -10,16 +10,22 @@ const OAUTH_PATH = path.join(os.homedir(), '.gemini', 'oauth_creds.json');
 // Helper to get active access token, refreshing if needed
 function getAccessToken() {
   if (!fs.existsSync(OAUTH_PATH)) {
-    throw new Error(`OAuth credentials not found at ${OAUTH_PATH}. Please run "gemini" in a terminal to log in.`);
+    throw new Error(`OAuth credentials not found at ${OAUTH_PATH}. Please run "agy" or "gemini" in a terminal to log in.`);
   }
   
   let oauth = JSON.parse(fs.readFileSync(OAUTH_PATH, 'utf8'));
   const isExpired = oauth.expiry_date && (Date.now() > oauth.expiry_date - 300000); // 5 min buffer
   
   if (isExpired && oauth.refresh_token) {
-    console.log('[Proxy] Token expired or expiring soon, refreshing via gemini CLI...');
+    console.log('[Proxy] Token expired or expiring soon, refreshing via Antigravity/Gemini CLI...');
     try {
-      execSync('gemini -p "READY"', { stdio: 'ignore', timeout: 8000 });
+      const localAppData = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
+      const agyBinPath = path.join(localAppData, 'agy', 'bin', 'agy.exe');
+      if (fs.existsSync(agyBinPath)) {
+        execSync(`"${agyBinPath}" -p "READY" --dangerously-skip-permissions`, { stdio: 'ignore', timeout: 10000 });
+      } else {
+        execSync('gemini -p "READY"', { stdio: 'ignore', timeout: 8000 });
+      }
       oauth = JSON.parse(fs.readFileSync(OAUTH_PATH, 'utf8'));
       console.log('[Proxy] Token refreshed successfully.');
     } catch (err) {
